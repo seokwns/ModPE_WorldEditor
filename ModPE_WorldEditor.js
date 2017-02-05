@@ -1804,6 +1804,7 @@
         this._editedBlock = [];
         this._taskCount = 0;
         this._editCount = 0;
+        this.__editCount = 0;
         this._editable = false;
         this._paste = false;
 
@@ -1856,69 +1857,92 @@
                         var radius = data[0],
                             hollow = data[1];
                                 
-                        if (hollow) {
-                            for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
-                                for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
-                                    if (((dx * dx) + (dz * dz)) == (radius * radius)) {
-                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
-                                        Thread_.sleep(50);
+                        for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
+                            for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
+                            thiz.__editCount++;
+                                if ((Math.pow(dx, 2) + Math.pow(dz, 2)) < (Math.pow(radius - 0.5, 2))) {
+                                    if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius + 1.5), 2)))) { //속이 빈 원 옵션 체크
+                                        continue;
                                     }
+                                    thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
+                                    thiz._editCount++;
                                 }
+                                Thread_.sleep(50);
                             }
                         }
-                            
-                        if (!hollow) {
-                            for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
-                               for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
-                                     if (((dx * dx) + (dz * dz)) <= (radius * radius)) {
-                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
-                                        Thread_.sleep(50);
-                                    }
-                                }
-                            }
+
+                        if(thiz.__editCount == Math.pow((2 * radius) - 1), 2)) {
+                            thiz._editable = true; //작업 준비 완료
+                            toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
                 }).start();
                 break;
                  
-            case RenderTypes.SPHERE:
+            case RenderTypes.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 new Thread_(new Runnable_() {
                     run: function () {
                         var radius = data[0],
                             hollow = data[1];
                             
-                        if (hollow) {
-                            for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
-                                for (var dy = -radius + 1; dy < radius; dy++) { //y 변화량
-                                    for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
-                                        if (((dx * dx) + (dy * dy) + (dz * dz)) == (radius * radius)) {
-                                            thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
-                                            Thread_.sleep(50);
+                        for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
+                            for (var dy = -radius + 1; dy < radius; dy++) { //y 변화량
+                                for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
+                                    thiz.__editCount++;
+                                    if ((Math.pow(dx, 2) + Math.pow(dy, 2) + Math.pow(dz, 2)) < (Math.pow((radius - 0.5), 2))) {
+                                        if (hollow && !(Math.pow(dx, 2) + Math.pow(dy, 2) + Math.pow(dz, 2) >= (Math.pow((radius - 1.5), 2)))) { //속이 빈 구 옵션 체크
+                                            continue;
                                         }
+                                        thiz._editCount++;
+                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     }
+                                    Thread_.sleep(50);
                                 }
                             }
                         }
                         
-                        if (!hollow) {
-                            for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
-                                for (var dy = -radius + 1; dy < radius; dy++) { //y 변화량
-                                    for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
-                                        if (((dx * dx) + (dy * dy) + (dz * dz)) <= (radius * radius)) {
-                                            thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
-                                            Thread_.sleep(50);
-                                        }
-                                    }
-                                }
-                            }
+                        if(thiz.__editCount == Math.pow((2 * radius) - 1), 3)) {
+                            thiz._editable = true; //작업 준비 완료
+                            toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
                 }).start();
                 break;
                 
-            case RenderTypes.CYLINDER:
+            case RenderTypes.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
+                new Thread_(new Runnable_() {
+                    run: function () {
+                        var radius = data[0],
+                            hollow = data[1],
+                            height = data[2];
+                                
+                        for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
+                            for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
+                                for (var dh = 0; dh < height; dh++) {
+                                    thiz.__editCount++;
+                                    if ((Math.pow(dx, 2) + Math.pow(dz, 2)) < (Math.pow(radius - 0.5, 2))) {
+                                        if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius + 1.5), 2)))) { //속이 빈 원 옵션 체크
+                                            continue;
+                                        }
+                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
+                                        thiz._editCount++;
+                                    }
+                                }
+                                Thread_.sleep(50);
+                            }
+                        }
+
+                        if(thiz.__editCount == ((Math.pow((2 * radius) - 1), 2)) * height)) {
+                            thiz._editable = true; //작업 준비 완료
+                            toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
+                        }
+                    }
+                }).start();
                 break;
         }
     };
@@ -2043,7 +2067,8 @@
                     this._editable = false; //작업 종료
                     break;
                     
-                case EdiTypes.terrain.ROTATE:
+                case EdiTypes.terrain.CIRCLE:
+                    
                     break;
             }
         }
