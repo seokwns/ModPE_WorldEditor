@@ -1562,6 +1562,18 @@
         }
         return this;
     };
+    
+    Vector3.prototype.getX = function () {
+        return this.x;
+    };
+    
+    Vector3.prototype.getY = function () {
+        return this.y;
+    };
+    
+    Vector3.prototype.getZ = function () {
+        return this.z;
+    };
 
     Vector3.prototype.toArray = function () {
         return [this.x, this.y, this.z];
@@ -1584,9 +1596,9 @@
         return {
             start: new Vector3(Math.min(start[0], end[0]), Math.min(start[1], end[1]), Math.min(start[2], end[2])),
             end: new Vector3(Math.max(start[0], end[0]), Math.max(start[1], end[1]), Math.max(start[2], end[2])),
-            dx: Math.abs(start[0] - end[0]),
-            dy: Math.abs(start[1] - end[1]),
-            dz: Math.abs(start[2] - end[2])
+            dx: Math.abs(start[0] - end[0] + 1),
+            dy: Math.abs(start[1] - end[1] + 1),
+            dz: Math.abs(start[2] - end[2] + 1)
         };
     }
 
@@ -1771,7 +1783,9 @@
             CYLINDER: 10,
             CYLINDER_HOLLOW: 11,
             ROTATE: 12,
-            FLIP: 13
+            FLIP: 13,
+            UNDO: 14,
+            REDO: 15
         },
         server: {
             TYPE: "server_edit",
@@ -1928,7 +1942,7 @@
                                         if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius + 1.5), 2)))) { //속이 빈 원 옵션 체크
                                             continue;
                                         }
-                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
+                                        thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dh, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                         thiz._editCount++;
                                     }
                                 }
@@ -2017,7 +2031,7 @@
                     thread(function () {
                         for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
                             var block = thiz._savedBlock[thiz._taskCount][i];
-                            if (bl.Level.getTile(block.getX(), block.getY() + 1, block.getZ()) === 0) { //만약 블록의 위가 공기일 때
+                            if (bl.Level.getTile(block.getX(), block.getY(), block.getZ()) != 0 && bl.Level.getTile(block.getX(), block.getY() + 1, block.getZ()) === 0) { //만약 블록의 위가 공기일 때
                                 var _block = new Block(block.getX(), block.getY() + 1, block.getZ(), data[0], data[1]); //덮을 블록 정보
                                 _block.set(); //덮을 블록 설치
                                 thiz._editedBlock[thiz._taskCount].push(_block); //덮은 블록을 수정한 지형 배열에 추가
@@ -2067,8 +2081,86 @@
                     this._editable = false; //작업 종료
                     break;
                     
-                case EdiTypes.terrain.CIRCLE:
+                case EdiTypes.terrain.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
+                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
+                    thread(function () {
+                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                            var block = thiz._savedBlock[thiz._taskCount][i],
+                                _block = new Block(block.getVector(), data[2], data[3]);
+                            _block.set();
+                            thiz._editedBlock[thiz._taskCount].push(_block);
+                        }
+                    }, 50);
                     
+                    this._taskList.push({ //작업 리스트에 추가
+                        type: EditTypes.terrain.CIRCLE,
+                        radius: data[0],
+                        hollow: data[1],
+                        count: this._editCount,
+                        content: "id: " + data[2] + ", data: " + data[3] + "로 원 만들기"
+                    });
+                    this._taskCount++; //작업한 수 증가
+                    this._editCount = 0; //작업한 블록 수 초기화
+                    this._editable = false; //작업 종료
+                    break;
+                    
+                case EditTypes.terrain.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
+                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
+                    thread(function () {
+                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                            var block = thiz._savedBlock[thiz._taskCount][i],
+                                _block = new Block(block.getVector(), data[2], data[3]);
+                            _block.set();
+                            thiz._editedBlock[thiz._taskCount].push(_block);
+                        }
+                    }, 50);
+                    
+                    this._taskList.push({ //작업 리스트에 추가
+                        type: EditTypes.terrain.SPHERE,
+                        radius: data[0],
+                        hollow: data[1],
+                        count: this._editCount,
+                        content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
+                    });
+                    this._taskCount++; //작업한 수 증가
+                    this._editCount = 0; //작업한 블록 수 초기화
+                    this._editable = false; //작업 종료
+                    break;
+                    
+                case EditTypes.terrain.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
+                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
+                    thread(function () {
+                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                            var block = thiz._savedBlock[thiz._taskCount][i],
+                                _block = new Block(block.getVector(), data[3], data[4]);
+                            _block.set();
+                            thiz._editedBlock[thiz._taskCount].push(_block);
+                        }
+                    }, 50);
+                    
+                    this._taskList.push({ //작업 리스트에 추가
+                        type: EditTypes.terrain.CYLINDER,
+                        radius: data[0],
+                        height: data[2],
+                        hollow: data[1],
+                        count: this._editCount,
+                        content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
+                    });
+                    this._taskCount++; //작업한 수 증가
+                    this._editCount = 0; //작업한 블록 수 초기화
+                    this._editable = false; //작업 종료
+                    break;
+                    
+                case EditTypes.terrain.ROTATE:
+                    break;
+                    
+                case EditTypes.terrain.FLIP:
+                    break;
+                    
+                case EditTypes.terrain.UNDO:
+                    break;
+                    
+                case EditTypes.terrain.REDO:
                     break;
             }
         }
