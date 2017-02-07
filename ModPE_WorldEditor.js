@@ -1,4 +1,4 @@
-(function (bl) {
+(function(bl) {
 
     'use strict';
 
@@ -124,8 +124,8 @@
 
 
     function thread(func, sec) {
-        new Thread_(new Runnable_() {
-            run: function () {
+        new Thread_({
+            run() {
                 func();
                 Thread_.sleep(sec);
             }
@@ -155,7 +155,7 @@
      * @since 2016-9-10
      * @return {Number} - Current hour
      */
-    Time.prototype.getHour = function () {
+    Time.prototype.getHour = function() {
         return this._hour;
     };
 
@@ -164,7 +164,7 @@
      * @since 2016-9-10
      * @return {Number} - Current minute
      */
-    Time.prototype.getMinute = function () {
+    Time.prototype.getMinute = function() {
         return this._minutes;
     };
 
@@ -173,7 +173,7 @@
      * @since 2016-9-10
      * @return {Number} - Current year
      */
-    Time.prototype.getYear = function () {
+    Time.prototype.getYear = function() {
         return this._year;
     };
 
@@ -182,7 +182,7 @@
      * @since 2016-9-10
      * @return {Number} - Current month
      */
-    Time.prototype.getMonth = function () {
+    Time.prototype.getMonth = function() {
         return this._month;
     };
 
@@ -191,7 +191,7 @@
      * @since 2016-9-10
      * @return {Number} - Current date
      */
-    Time.prototype.getDate = function () {
+    Time.prototype.getDate = function() {
         return this._date;
     };
 
@@ -200,61 +200,8 @@
      * @since 2016-9-10
      * @return {String} - Full time
      */
-    Time.prototype.getCurrentTime = function () {
+    Time.prototype.getCurrentTime = function() {
         return this._year + "년 " + this._month + "월 " + this._day + "일 " + (this._hour > 12 ? ("오후" + (this._hour - 12)) : ("오전" + this._hour)) + ":" + this._minute;
-    };
-
-
-
-    /**
-     * Save and read a data.
-     * @class
-     */
-    function Data() {}
-
-    /**
-     * Saving data.
-     * param {String} name - Data name
-     * param {String} value - Data
-     */
-    Data.saveData = function (name, value) {
-        if (new File_(DB_PATH + "Data.txt").exists()) {
-            var file = new File(DB_PATH + "Data.txt");
-            file.write(file.read() + "" + name + " : " + value);
-        } else {
-            var file = new File(DB_PATH + "Data.txt");
-            file.create();
-            file.write(name + " : " + value);
-        }
-    };
-
-    /**
-     * Reading data.
-     * @param {String} name - Data name
-     * @return {String} data
-     */
-    Data.readData = function (name) {
-        try {
-            var file = new File_(DB_PATH + "Data.txt"),
-                br = new BufferedReader_(new FileReader_(file)),
-                str, split;
-
-            while (true) {
-                str = br.readLine();
-                if (str !== null) {
-                    split = str.split(" : ");
-                    if (split[0] == name) {
-                        return split[1];
-                    }
-                }
-            }
-        } catch (err) {
-
-        }
-    };
-
-    Data.removeData = function (name) {
-
     };
 
 
@@ -267,7 +214,7 @@
      * Create dirctory path and a file.
      * @since 2016-9-5
      */
-    File.prototype.create = function () {
+    File.prototype.create = function() {
         var file = new File_(this._path);
 
         if (!file.getParentFile().exists()) {
@@ -277,61 +224,36 @@
         if (!file.exists()) {
             file.createNewFile();
         }
-        return this;
     };
 
-    File.prototype.exists = function () {
+    File.prototype.exists = function() {
         var file = new File_(this._path);
         return file.exists();
-    }
-
-    /**
-     * Reading file.
-     * @since 2016-9-5
-     * @param {String} path
-     * @return {String}
-     */
-    File.read = function (path) {
-        var file = new File_(path);
-        if (file.exists()) {
-            var fis = new FileInputStream_(path),
-                isr = new InputStreamReader_(fis),
-                br = new BufferedReader_(isr),
-                str = "",
-                read = "";
-
-            while ((read = br.readLine()) !== -1) {
-                str += read + "\n";
-            }
-            br.close();
-
-            return str;
-        } else {
-            return "";
-        }
     };
 
-    /**
-     * Save value in the file.
-     * @since 2016-9-5
-     * @param {String} path
-     * @param {String} content
-     */
-    File.write = function (path, content) {
-        var file = new File_(path),
-            fos = new FileOutputStream_(path);
 
-        fos.write(new String_(content).getBytes());
-        fos.close();
-    };
 
     /**
      * Read a data from the file.
      * @since 2016-9-5
      * @return {String}
      */
-    File.prototype.read = function () {
-        return File.read(this._path);
+    File.prototype.read = function() {
+        var fis = new FileInputStream_(new File_(this._path)),
+            isr = new InputStreamReader_(fis),
+            br = new BufferedReader_(isr),
+            content = [],
+            line;
+
+        while ((line = br.readLine()) !== null) {
+            content.push(line + "");
+        }
+
+        br.close();
+        isr.close();
+        fis.close();
+
+        return content;
     };
 
     /**
@@ -339,9 +261,12 @@
      * @since 2016-9-10
      * @param {String} content
      */
-    File.prototype.write = function (content) {
-        File.write(this._path, content);
-        return this;
+    File.prototype.write = function(content) {
+        var file = new File_(this._path),
+            fos = new FileOutputStream_(file);
+
+        fos.write(new String_(content).getBytes());
+        fos.close();
     };
 
     /**
@@ -349,7 +274,7 @@
      * @since 2016-9-10
      * @param {String} path
      */
-    File.prototype.zip = function (path) {
+    File.prototype.zip = function(path) {
         var fileList = [],
             input = new File_(this._path),
             output = new File_(path);
@@ -404,7 +329,7 @@
      * @since 2016-9-10
      * @param {String} path
      */
-    File.prototype.unzip = function (path) {
+    File.prototype.unzip = function(path) {
         var output = new File_(path);
         output.getParentFile().mkdirs();
 
@@ -464,7 +389,7 @@
      * @param {Number} [radius=15*DP] radius
      * @param {Number} alpha
      */
-    Canvas.drawCircle = function (view, width, height, x, y, color, drawable, radius, alpha) {
+    Canvas.drawCircle = function(view, width, height, x, y, color, drawable, radius, alpha) {
         var bm = Bitmap_.createBitmap(width, height, Bitmap_.Config.ARGB_8888),
             canvas = new Canvas_(bm),
             paint = new Paint_();
@@ -495,7 +420,7 @@
      * @param {Number} color
      * @return {android.graphics.drawable.Drawable}
      */
-    Drawable.setTint = function (drawable, color) {
+    Drawable.setTint = function(drawable, color) {
         drawable.getPaint().setColorFilter(new PorterDuffColorFilter_(color, PorterDuff_.Mode.SRC_ATOP));
         return drawable;
     };
@@ -539,7 +464,7 @@
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_menu_white_48dp.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.EDIT = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_mode_edit_white_48dp.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
@@ -560,7 +485,7 @@
         this._effectColor = 0;
         this._event = () => {};
         this._drawable = null;
-        this._duration = 300;
+        this._duration = 200;
         this._max_radius = null;
     };
 
@@ -570,7 +495,7 @@
      * @param {Number} width - Width of the view
      * @param {Number} height - Height of the view
      */
-    RippleDrawable.prototype.setWH = function (width, height) {
+    RippleDrawable.prototype.setWH = function(width, height) {
         this._width = width;
         this._height = height;
         return this;
@@ -582,7 +507,7 @@
      * @param {Number} x - Position X of the ripple effect
      * @param {Number} y - Position Y of the ripple effect
      */
-    RippleDrawable.prototype.setHotSpot = function (x, y) {
+    RippleDrawable.prototype.setHotSpot = function(x, y) {
         this._x = x;
         this._y = y;
         return this;
@@ -593,7 +518,7 @@
      * @since 2016-8-29
      * @param {Number} color - Color of the ripple effect
      */
-    RippleDrawable.prototype.setEffectColor = function (color) {
+    RippleDrawable.prototype.setEffectColor = function(color) {
         this._effectColor = color;
         return this;
     };
@@ -602,7 +527,7 @@
      * @since 2016-8-29
      * @param {android.graphics.drawable.Drawable} drawable
      */
-    RippleDrawable.prototype.setBackgroundDrawable = function (drawable) {
+    RippleDrawable.prototype.setBackgroundDrawable = function(drawable) {
         this._drawable = drawable;
         return this;
     };
@@ -612,7 +537,7 @@
      * @since 2016-8-29
      * @param {Function} event
      */
-    RippleDrawable.prototype.setEvent = function (event) {
+    RippleDrawable.prototype.setEvent = function(event) {
         this._event = event;
         return this;
     };
@@ -622,7 +547,7 @@
      * @since 2016-8-29
      * @param {Number} duration
      */
-    RippleDrawable.prototype.setDuration = function (duration) {
+    RippleDrawable.prototype.setDuration = function(duration) {
         this._duration = duration;
         return this;
     };
@@ -632,7 +557,7 @@
      * @since 2016-8-29
      * @param {android.view.View}
      */
-    RippleDrawable.prototype.setView = function (view) {
+    RippleDrawable.prototype.setView = function(view) {
         this._view = view;
         return this;
     };
@@ -641,7 +566,7 @@
      * Start the ripple effect.
      * @since 2016-8-29
      */
-    RippleDrawable.prototype.start = function () {
+    RippleDrawable.prototype.start = function() {
         var radius = 10 * DP,
             max_radius = (this._max_radius == null ? ((Math.hypot(this._width, this._height) / 2) + 100 * DP) : this._max_radius),
             click = false;
@@ -655,7 +580,7 @@
 
         var thiz = this;
         valueAnimator.addUpdateListener(new ValueAnimator_.AnimatorUpdateListener({
-            onAnimationUpdate: function (_valueAnimator) {
+            onAnimationUpdate: function(_valueAnimator) {
                 var current_radius = _valueAnimator.getAnimatedValue(),
                     circle_point_x = _valueAnimatorX.getAnimatedValue(),
                     circle_point_y = _valueAnimatorY.getAnimatedValue();
@@ -694,11 +619,11 @@
         this.drawable = null;
     };
 
-    ShadeDrawable.prototype.setDrawable = function () {
+    ShadeDrawable.prototype.setDrawable = function() {
 
     };
 
-    ShadeDrawable.prototype.create = function () {
+    ShadeDrawable.prototype.create = function() {
         var layerDrawable = new LayerDrawable_([this.resource, new ColorDrawable_(Color_.WHITE)]);
         layerDrawable.setLayerInset(0, 3 * DP, 6 * DP, 3 * DP, 2 * DP);
         return layerDrawable;
@@ -713,7 +638,6 @@
         this._height = 0;
         this._drawable = null;
         this._listener = () => {};
-        this._theme = new Theme();
     }
 
     /**
@@ -721,7 +645,7 @@
      * @since 2016-8-27
      * @param {String} text - Button text
      */
-    Button.prototype.setText = function (text) {
+    Button.prototype.setText = function(text) {
         this._view.setText(text);
         return this;
     };
@@ -731,7 +655,7 @@
      * @since 2016-8-28
      * @param {Number} textColor - Color of the shown text
      */
-    Button.prototype.setTextColor = function (textColor) {
+    Button.prototype.setTextColor = function(textColor) {
         this._view.setTextColor(textColor);
         return this;
     };
@@ -741,7 +665,7 @@
      * @since 2016-8-28
      * @param {Number} textSize - Size of the shown text
      */
-    Button.prototype.setTextSize = function (textSize) {
+    Button.prototype.setTextSize = function(textSize) {
         this._view.setTextSize(textSize);
         return this;
     };
@@ -752,7 +676,7 @@
      * @param {Number} width - Width of the button
      * @param {Number} height - Height of the button
      */
-    Button.prototype.setWH = function (width, height) {
+    Button.prototype.setWH = function(width, height) {
         this._width = width;
         this._height = height;
         this._view.setLayoutParams(new Params_(width, height));
@@ -764,12 +688,12 @@
      * @since 2016-8-28
      * @param {Number} textColor - Color of the ripple effect
      */
-    Button.prototype.setEffectColor = function (effectColor) {
+    Button.prototype.setEffectColor = function(effectColor) {
         this._effectColor = effectColor;
         return this;
     };
 
-    Button.prototype.setBackgroundDrawable = function (drawable) {
+    Button.prototype.setBackgroundDrawable = function(drawable) {
         this._drawable = drawable;
         return this;
     };
@@ -779,12 +703,12 @@
      * @since 2016-8-28
      * @param {Funtion} event - Click event
      */
-    Button.prototype.setEvent = function (event) {
+    Button.prototype.setEvent = function(event) {
         this._listener = event;
         return this;
     };
 
-    Button.prototype.get = function () {
+    Button.prototype.get = function() {
         var thiz = this;
         this._view.setBackgroundDrawable(this._drawable);
         this._view.setAllCaps(false);
@@ -827,7 +751,7 @@
         return this._view;
     };
 
-    Button.prototype.show = function (gravity, x, y) {
+    Button.prototype.show = function(gravity, x, y) {
         render(this.get(), gravity, x, y);
     };
 
@@ -849,33 +773,33 @@
      * @since 2017-2-2
      * @param {String} str
      */
-    CircleButton.prototype.setText = function (str) {
+    CircleButton.prototype.setText = function(str) {
         this._view.setText(str);
         return this;
     };
 
-    CircleButton.prototype.setTextSize = function (size) {
+    CircleButton.prototype.setTextSize = function(size) {
         this._view.setTextSize(size);
         return this;
     };
 
-    CircleButton.prototype.setTextColor = function (color) {
+    CircleButton.prototype.setTextColor = function(color) {
         this._view.setTextColor(color);
         return this;
     };
 
-    CircleButton.prototype.setRadius = function (radius) {
+    CircleButton.prototype.setRadius = function(radius) {
         this._radius = radius;
         this._view.setLayoutParams(new Params_(this._radius * 2, this._radius * 2));
         return this;
     };
 
-    CircleButton.prototype.setColor = function (color) {
+    CircleButton.prototype.setColor = function(color) {
         this._color = color;
         return this;
     };
 
-    CircleButton.prototype.setBackgroundDrawable = function (__drawable) {
+    CircleButton.prototype.setBackgroundDrawable = function(__drawable) {
         this.drawable = __drawable;
         if (this._shapeDrawable != null) {
             this._drawable = new LayerDrawable_([this._shapeDrawable, this.drawable]);
@@ -884,17 +808,17 @@
         return this;
     };
 
-    CircleButton.prototype.setEffectColor = function (color) {
+    CircleButton.prototype.setEffectColor = function(color) {
         this._effectColor = color;
         return this;
     };
 
-    CircleButton.prototype.setEvent = function (__listener) {
+    CircleButton.prototype.setEvent = function(__listener) {
         this._listener = __listener;
         return this;
     };
 
-    CircleButton.prototype.get = function () {
+    CircleButton.prototype.get = function() {
         this._shapeDrawable = drawable_.ShapeDrawable(new drawable_.shapes.OvalShape());
         this._shapeDrawable.getPaint().setColor(this._color);
 
@@ -905,7 +829,7 @@
         this._view.setAllCaps(false);
         this._view.setBackgroundDrawable(this._drawable);
         this._view.setOnTouchListener(new OnTouchListener_({
-            onTouch: function (view, event) {
+            onTouch: function(view, event) {
                 switch (event.getAction()) {
                     case MotionEvent_.ACTION_DOWN:
                         return true;
@@ -926,7 +850,7 @@
         return this._view;
     };
 
-    CircleButton.prototype.show = function (gravity, x, y) {
+    CircleButton.prototype.show = function(gravity, x, y) {
         render(this.get(), gravity, x, y);
     };
 
@@ -952,22 +876,22 @@
         this._viewLayout.setGravity(Gravity_.CENTER);
     }
 
-    CheckBox.prototype.setText = function (str) {
+    CheckBox.prototype.setText = function(str) {
         this._textView.setText(str);
         return this;
     };
 
-    CheckBox.prototype.setTextSize = function (size) {
+    CheckBox.prototype.setTextSize = function(size) {
         this._textView.setTextSize(size);
         return this;
     };
 
-    CheckBox.prototype.setTextColor = function (color) {
+    CheckBox.prototype.setTextColor = function(color) {
         this._textView.setTextColor(color);
         return this;
     };
 
-    CheckBox.prototype.setChecked = function (checked) {
+    CheckBox.prototype.setChecked = function(checked) {
         var thiz = this;
         uiThread(() => {
             thiz._checked = checked;
@@ -976,32 +900,32 @@
         return this;
     };
 
-    CheckBox.prototype.setColor = function (color) {
+    CheckBox.prototype.setColor = function(color) {
         this._color = color;
         return this;
     };
 
-    CheckBox.prototype.setParams = function (width, height) {
+    CheckBox.prototype.setParams = function(width, height) {
         this._WIDTH = width;
         this._HEIGHT = height;
         this._viewLayout.setLayoutParams(new Params_(this.WIDTH, this.HEIGHT));
         return this;
     };
 
-    CheckBox.prototype.setOnCheckedChangeListener = function (__listener) {
+    CheckBox.prototype.setOnCheckedChangeListener = function(__listener) {
         this._listener = __listener;
         return this;
     };
 
-    CheckBox.prototype.getWidth = function () {
+    CheckBox.prototype.getWidth = function() {
         return this._WIDTH;
     };
 
-    CheckBox.prototype.getHeight = function () {
+    CheckBox.prototype.getHeight = function() {
         return this._HEIGHT;
     };
 
-    CheckBox.prototype.get = function () {
+    CheckBox.prototype.get = function() {
         var thiz = this;
         this._view.setBackgroundDrawable(es.astin.graphics.drawable.CHECKBOX_OFF(this._color));
         this._view.setLayoutParams(new Params_(30 * DP, 30 * DP));
@@ -1026,7 +950,7 @@
         return this._viewLayout;
     };
 
-    CheckBox.prototype.show = function (gravity, x, y) {
+    CheckBox.prototype.show = function(gravity, x, y) {
         render(this.get(), gravity, x, y);
     };
 
@@ -1052,22 +976,22 @@
         this._viewLayout.setGravity(Gravity_.CENTER);
     }
 
-    RadioButton.prototype.setText = function (str) {
+    RadioButton.prototype.setText = function(str) {
         this._textView.setText(str);
         return this;
     };
 
-    RadioButton.prototype.setTextSize = function (size) {
+    RadioButton.prototype.setTextSize = function(size) {
         this._textView.setTextSize(size);
         return this;
     };
 
-    RadioButton.prototype.setTextColor = function (color) {
+    RadioButton.prototype.setTextColor = function(color) {
         this._textView.setTextColor(color);
         return this;
     };
 
-    RadioButton.prototype.setChecked = function (checked) {
+    RadioButton.prototype.setChecked = function(checked) {
         var thiz = this;
         uiThread(() => {
             thiz._checked = checked;
@@ -1076,32 +1000,32 @@
         return this;
     };
 
-    RadioButton.prototype.setColor = function (color) {
+    RadioButton.prototype.setColor = function(color) {
         this._color = color;
         return this;
     };
 
-    RadioButton.prototype.setParams = function (width, height) {
+    RadioButton.prototype.setParams = function(width, height) {
         this._WIDTH = width;
         this._HEIGHT = height;
         this._viewLayout.setLayoutParams(new Params_(this.WIDTH, this.HEIGHT));
         return this;
     };
 
-    RadioButton.prototype.setOnCheckedChangeListener = function (__listener) {
+    RadioButton.prototype.setOnCheckedChangeListener = function(__listener) {
         this._listener = __listener;
         return this;
     };
 
-    RadioButton.prototype.getWidth = function () {
+    RadioButton.prototype.getWidth = function() {
         return this._WIDTH;
     };
 
-    RadioButton.prototype.getHeight = function () {
+    RadioButton.prototype.getHeight = function() {
         return this._HEIGHT;
     };
 
-    RadioButton.prototype.get = function () {
+    RadioButton.prototype.get = function() {
         var thiz = this;
         this._view.setBackgroundDrawable(es.astin.graphics.drawable.RADIO_OFF(this._color));
         this._view.setLayoutParams(new Params_(30 * DP, 30 * DP));
@@ -1126,7 +1050,7 @@
         return this._viewLayout;
     };
 
-    RadioButton.prototype.show = function (gravity, x, y) {
+    RadioButton.prototype.show = function(gravity, x, y) {
         render(this.get(), gravity, x, y);
     };
 
@@ -1137,12 +1061,12 @@
         this._Space.setBackgroundDrawable(null);
     }
 
-    Space.prototype.setWH = function (w, h) {
+    Space.prototype.setWH = function(w, h) {
         this._Space.setLayoutParams(new Params_(w, h));
         return this;
     };
 
-    Space.prototype.get = function () {
+    Space.prototype.get = function() {
         return this._Space;
     };
 
@@ -1152,17 +1076,17 @@
         this._view = new TextView_(CONTEXT);
     }
 
-    Divider.prototype.setWH = function (w, h) {
+    Divider.prototype.setWH = function(w, h) {
         this._view.setLayoutParams(new Params_(w, h));
         return this;
     };
 
-    Divider.prototype.setColor = function (color) {
+    Divider.prototype.setColor = function(color) {
         this._view.setBackgroundDrawable(new ColorDrawable_(color));
         return this;
     };
 
-    Divider.prototype.get = function () {
+    Divider.prototype.get = function() {
         return this._view;
     };
 
@@ -1173,7 +1097,7 @@
         this.mainLayout = new LinearLayout_(CONTEXT);
         this.titleLayout = new LinearLayout_(CONTEXT);
 
-        this.dismissListener = function () {};
+        this.dismissListener = function() {};
         this.WIDTH = WIDTH;
         this.HEIGHT = HEIGHT;
         var that = this;
@@ -1195,7 +1119,7 @@
             .setWH(20 * DP, 20 * DP)
             .setEffectColor(Color_.argb(0, 0, 0, 0))
             .setBackgroundDrawable(layer)
-            .setEvent(function (view) {
+            .setEvent(function(view) {
 
             });
         this.titleLayout.addView(this.menuBtn.get());
@@ -1212,54 +1136,61 @@
             .setWH(20 * DP, 20 * DP)
             .setEffectColor(Color_.argb(0, 0, 0, 0))
             .setBackgroundDrawable(Drawable.CLOSE(Color.WHITE))
-            .setEvent(function (view) {
-                uiThread(function () {
+            .setEvent(function(view) {
+                uiThread(function() {
                     that.window.dismiss();
                     that.dismissListener();
                 });
             });
         this.titleLayout.addView(this.close.get());
         this.mainLayout.addView(this.titleLayout, -1, 45 * DP);
+
+        this.sideLayout = new LinearLayout_(CONTEXT);
+        this.sideLayout.setOrientation(1);
     }
 
-    PopupWindow.prototype.setTitle = function (str) {
+    PopupWindow.prototype.setTitle = function(str) {
         this.title.setText(str);
         return this;
     };
 
-    PopupWindow.prototype.setTitleColor = function (color) {
+    PopupWindow.prototype.setTitleColor = function(color) {
         this.titleLayout.setBackgroundDrawable(new ColorDrawable(color));
         return this;
     };
 
-    PopupWindow.prototype.setOnDismissListener = function (listener) {
+    PopupWindow.prototype.setOnDismissListener = function(listener) {
         this.dismissListener = listener;
         return this;
     };
 
-    PopupWindow.prototype.setIcon = function (icon) {
+    PopupWindow.prototype.setIcon = function(icon) {
         this.menuBtn.setBackgroundDrawable(icon);
         return this;
     };
 
-    PopupWindow.prototype.setWidth = function (value) {
+    PopupWindow.prototype.setWidth = function(value) {
         this.WIDTH = value;
         return this;
     };
 
-    PopupWindow.prototype.setHeight = function (value) {
+    PopupWindow.prototype.setHeight = function(value) {
         this.HEIGHT = value;
         return this;
     };
 
-    PopupWindow.prototype.setContentView = function (view) {
+    PopupWindow.prototype.setContentView = function(view) {
         this.mainLayout.addView(view);
         return this;
     };
 
-    PopupWindow.prototype.show = function () {
+    PopupWindow.prototype.addMenu = function(name, func) {
+
+    };
+
+    PopupWindow.prototype.show = function() {
         var that = this;
-        uiThread(function () {
+        uiThread(function() {
             that.window.setWidth(that.WIDTH);
             that.window.setHeight(that.HEIGHT);
             that.window.setContentView(that.mainLayout);
@@ -1286,7 +1217,7 @@
         this._view = new Button(CONTEXT);
     }
 
-    ImageButton.prototype.setText = function (text) {
+    ImageButton.prototype.setText = function(text) {
 
     };
 
@@ -1294,7 +1225,7 @@
 
     function Widget() {}
 
-    Widget.TextView = function (text, textColor, textSize, width, height, drawable) {
+    Widget.TextView = function(text, textColor, textSize, width, height, drawable) {
         var tv = new TextView_(CONTEXT);
         tv.setText(text);
         if (textColor != null) tv.setTextColor(textColor);
@@ -1305,7 +1236,7 @@
         return tv;
     };
 
-    Widget.Button = function (text, textColor, textSize, width, height, drawable) {
+    Widget.Button = function(text, textColor, textSize, width, height, drawable) {
         var btn = new Button_(CONTEXT);
         btn.setText(text);
         if (textColor != null) btn.setTextColor(textColor);
@@ -1334,7 +1265,7 @@
      * @since 2016-8-28
      * @param {Number} ver - Script version
      */
-    ScriptInfo.prototype.setVersion = function (ver) {
+    ScriptInfo.prototype.setVersion = function(ver) {
         this._version = ver;
         return this;
     };
@@ -1345,7 +1276,7 @@
      * @param {String} name - Developer name
      * @param {String} email - Developer E-mail
      */
-    ScriptInfo.prototype.setDeveloper = function (name, email) {
+    ScriptInfo.prototype.setDeveloper = function(name, email) {
         this._developer = [name, email];
         return this;
     };
@@ -1355,7 +1286,7 @@
      * @since 2016-8-28
      * @param {String} url - Github url of the script
      */
-    ScriptInfo.prototype.setUrl = function (url) {
+    ScriptInfo.prototype.setUrl = function(url) {
         this._url = url;
         return this;
     };
@@ -1365,24 +1296,24 @@
      * @since 2016-8-28
      * @param {String} path - directory path of the script
      */
-    ScriptInfo.prototype.setPath = function (path) {
+    ScriptInfo.prototype.setPath = function(path) {
         this._path = path;
         return this;
     };
 
-    ScriptInfo.prototype.getVersion = function () {
+    ScriptInfo.prototype.getVersion = function() {
         return this._version;
     };
 
-    ScriptInfo.prototype.getPath = function () {
+    ScriptInfo.prototype.getPath = function() {
         return this._path;
     };
 
-    ScriptInfo.prototype.getUrl = function () {
+    ScriptInfo.prototype.getUrl = function() {
         return this._url;
     };
 
-    ScriptInfo.prototype.getDeveloper = function () {
+    ScriptInfo.prototype.getDeveloper = function() {
         return this._developer;
     };
 
@@ -1408,7 +1339,7 @@
      * @since 2016-8-28
      * @return {Number}
      */
-    NetworkChecker.prototype.getConnectedType = function () {
+    NetworkChecker.prototype.getConnectedType = function() {
         var _manager = CONTEXT.getSystemService(CONTEXT.CONNECTIVITY_SERVICE);
         _mobile = _manager.getNetworkInfo(ConnectivityManager_.TYPE_MOBILE).isConnectedOrConnecting(),
             _wifi = _manager.getNetworkInfo(ConnectivityManager_.TYPE_WIFI).isConnectedOrConnecting();
@@ -1427,7 +1358,7 @@
      * @since 2016-8-28
      * @return {Boolean}
      */
-    NetworkChecker.prototype.isConnected = function () {
+    NetworkChecker.prototype.isConnected = function() {
         return this.getConnectedType() !== 2;
     };
 
@@ -1444,20 +1375,20 @@
      * @since 2016-8-28
      * @param {ScriptInfo} info - Information of the downloaded script.
      */
-    DownloadManager.prototype.setInfo = function (info) {
+    DownloadManager.prototype.setInfo = function(info) {
         this._info = info;
         return this;
     };
 
-    DownloadManager.prototype.setProgressBar = function () {
+    DownloadManager.prototype.setProgressBar = function() {
 
     };
 
-    DownloadManager.prototype.getProgress = function () {
+    DownloadManager.prototype.getProgress = function() {
 
     };
 
-    DownloadManager.prototype.start = function () {
+    DownloadManager.prototype.start = function() {
         var thiz = this;
         new Thread_({
             run() {
@@ -1497,7 +1428,7 @@
                 response = AndroidHttpClient_.newInstance("userAgent").execute(new org.apache.http.client.methods.HttpGet(url)).getEntity().writeTo(read);
 
             read.close();
-            return String(read.toString());
+            return String_(read.toString());
         } catch (err) {
             error(err);
         }
@@ -1506,7 +1437,7 @@
 
 
     function toast(text, duration) {
-        uiThread(function () {
+        uiThread(function() {
             Toast_.makeText(CONTEXT, text, (duration == null ? Toast_.LENGTH_SHORT : duration)).show();
         });
     }
@@ -1526,7 +1457,7 @@
         }
     }
 
-    Vector3.prototype.getDistance = function (x, y, z) {
+    Vector3.prototype.getDistance = function(x, y, z) {
         if (x instanceof Vector3) {
             return Math.sqrt(Math.pow(x.x - this.x, 2) + Math.pow(x.y - this.y, 2) + Math.pow(x.z - this.z, 2));
         }
@@ -1535,7 +1466,7 @@
         }
     };
 
-    Vector3.prototype.add = function (x, y, z) {
+    Vector3.prototype.add = function(x, y, z) {
         if (x instanceof Vector3) {
             this.x += x.x;
             this.y += x.y;
@@ -1549,7 +1480,7 @@
         return this;
     };
 
-    Vector3.prototype.set = function (x, y, z) {
+    Vector3.prototype.set = function(x, y, z) {
         if (x instanceof Vector3) {
             this.x = x.x;
             this.y = x.y;
@@ -1562,24 +1493,24 @@
         }
         return this;
     };
-    
-    Vector3.prototype.getX = function () {
+
+    Vector3.prototype.getX = function() {
         return this.x;
     };
-    
-    Vector3.prototype.getY = function () {
+
+    Vector3.prototype.getY = function() {
         return this.y;
     };
-    
-    Vector3.prototype.getZ = function () {
+
+    Vector3.prototype.getZ = function() {
         return this.z;
     };
 
-    Vector3.prototype.toArray = function () {
+    Vector3.prototype.toArray = function() {
         return [this.x, this.y, this.z];
     };
 
-    Vector3.prototype.toString = function () {
+    Vector3.prototype.toString = function() {
         return "[ " + this.toArray().join(", ") + " ]";
     };
 
@@ -1617,7 +1548,7 @@
         }
     }
 
-    Pointer.prototype.set = function (x, y, z) {
+    Pointer.prototype.set = function(x, y, z) {
         if (x instanceof Vector3) {
             this.x = x.x;
             this.y = x.y;
@@ -1630,23 +1561,23 @@
         }
     };
 
-    Pointer.prototype.getLocation = function (array) {
+    Pointer.prototype.getLocation = function(array) {
         array = [this.x, this.y, this.z];
     };
 
-    Pointer.prototype.getX = function () {
+    Pointer.prototype.getX = function() {
         return this.x;
     };
 
-    Pointer.prototype.getY = function () {
+    Pointer.prototype.getY = function() {
         return this.y;
     };
 
-    Pointer.prototype.getZ = function () {
+    Pointer.prototype.getZ = function() {
         return this.z;
     };
 
-    Pointer.prototype.toString = function () {
+    Pointer.prototype.toString = function() {
         return "[ " + ([this.x, this.y, this.z]).join(", ") + " ]";
     };
 
@@ -1678,35 +1609,35 @@
         }
     }
 
-    Block.prototype.getBlockData = function (array) {
+    Block.prototype.getBlockData = function(array) {
         array = [this.x, this.y, this.z, this.id, this.data];
     };
 
-    Block.prototype.getX = function () {
+    Block.prototype.getX = function() {
         return this.x;
     };
 
-    Block.prototype.getY = function () {
+    Block.prototype.getY = function() {
         return this.y;
     };
 
-    Block.prototype.getZ = function () {
+    Block.prototype.getZ = function() {
         return this.z;
     };
 
-    Block.prototype.getId = function () {
+    Block.prototype.getId = function() {
         return this.id;
     };
 
-    Block.prototype.getData = function () {
+    Block.prototype.getData = function() {
         return this.data;
     };
 
-    Block.prototype.set = function () {
+    Block.prototype.set = function() {
         bl.Level.setTile(this.x, this.y, this.z, this.id, this.data);
     };
 
-    Block.prototype.update = function (x, y, z, id, data) {
+    Block.prototype.update = function(x, y, z, id, data) {
         if (x != null) {
             this.x = x;
         }
@@ -1737,11 +1668,11 @@
         */
     };
 
-    Block.prototype.getVector = function () {
+    Block.prototype.getVector = function() {
         return new Vector3(this.x, this.y, this.z);
     }
 
-    Block.prototype.rotate = function () { //지형 회전시 계단의 블록 데이터를 회전시켜줍니다
+    Block.prototype.rotate = function() { //지형 회전시 계단의 블록 데이터를 회전시켜줍니다
         var _degree, datas = [1, 3, 0, 2],
             rotateableBlocks = [53, 67, 108, 109, 134, 135, 136];
 
@@ -1761,9 +1692,35 @@
         }
     };
 
-    Block.prototype.flip = function () {
+    Block.prototype.flip = function() {
 
     };
+
+
+
+    function ItemIamgeLoader(name, data) { //아이템 텍스쳐 경로 및 파일이 달라져서 수정 요망.
+        /*var meta = eval("" + new java.lang.String(ModPE.getBytesFromTexturePack("images/items.meta"))+"");
+        var meta_map = meta.map(function(i) {
+            return i.name;
+        });
+        
+        if(meta_map.indexOf(name) < 0) {
+            return Bitmap.createBitmap(1, 1, Bitmap.Config.RGB_8888);
+        }
+        
+        var uvs = meta[meta_map.indexOf(name)].uvs[data];
+        var img = MC.Image.getTexture("items-opaque.png");
+        var x = uvs[0] * img.getWidth();
+        var y = uvs[1] * img.getHeight();
+        var width = Math.ceil(uvs[2] * img.getWidth() - x);
+        var height = Math.ceil(uvs[3] * img.getHeight() - y);
+        
+        return BitmapDrawable(Bitmap.createScaledBitmap(Bitmap.createBitmap(img, x, y, width, height), 32, 32, false));*/
+    }
+
+
+
+
 
 
 
@@ -1801,7 +1758,7 @@
         }
     };
     Object.freeze(EditTypes);
-    
+
     const RenderTypes = {
         CUBE: 0,
         CIRCLE: 1,
@@ -1810,9 +1767,14 @@
     };
     Object.freeze(RenderTypes);
 
+    var Data = {
+        task: [],
+        ban: [],
+        editablePlayer: []
+    };
+
     function Editor(name) {
         this._worldName = name;
-        this._taskList = [];
         this._copiedBlock = [];
         this._savedBlock = [];
         this._editedBlock = [];
@@ -1821,16 +1783,25 @@
         this.__editCount = 0;
         this._editable = false;
         this._paste = false;
+    }
 
-        var path = DB_PATH + "/world edit/" + name,
+    Editor.prototype.init = function() {
+        var path = DB_PATH + "/world edit/" + this._worldName + ".editor",
             file = new File(path);
 
         if (file.exists()) {
-            
+            var read = file.read();
+            Data = JSON.parse(read[0]);
+            toast("데이터를 불러옵니다.");
         }
-    }
+        if (!file.exists()) {
+            toast("데이터 파일이 존재하지 않습니다.\n데이터 파일을 생성합니다.");
+            file.create();
+            file.write(JSON.stringify(Data));
+        }
+    };
 
-    Editor.prototype.render = function (p1, p2, type, task, data) {
+    Editor.prototype.render = function(p1, p2, type, task, data) {
         var thiz = this;
         if (this._paste) { //붙여넣기 작업이 진행중이면
             toast("붙여넣기 모드가 활성화 되어있습니다.\n붙여넣기 작업을 먼저 마친 후에 시도하세요.");
@@ -1838,11 +1809,11 @@
 
         this._savedBlock[this._taskCount] = [];
         //스캔한 블럭을 담을 배열 생성
-        switch(type) {
+        switch (type) {
             case RenderTypes.CUBE:
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
-                new Thread_(new Runnable_() {
-                    run: function () {
+                new Thread_({
+                    run() {
                         var editVector = getEditVector(p1, p2);
 
                         for (var dx = 0; dx < editVector.dx; dx++) { //x 변화량
@@ -1863,17 +1834,17 @@
                     }
                 }).start();
                 break;
-                    
+
             case RenderTypes.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
-                new Thread_(new Runnable_() {
-                    run: function () {
+                new Thread_({
+                    run() {
                         var radius = data[0],
                             hollow = data[1];
-                                
+
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
-                            thiz.__editCount++;
+                                thiz.__editCount++;
                                 if ((Math.pow(dx, 2) + Math.pow(dz, 2)) < (Math.pow(radius - 0.5, 2))) {
                                     if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius + 1.5), 2)))) { //속이 빈 원 옵션 체크
                                         continue;
@@ -1885,7 +1856,7 @@
                             }
                         }
 
-                        if(thiz.__editCount == Math.pow((2 * radius) - 1), 2)) {
+                        if (thiz.__editCount == Math.pow(((2 * radius) - 1), 2)) { //작업 완료시
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
@@ -1893,14 +1864,14 @@
                     }
                 }).start();
                 break;
-                 
+
             case RenderTypes.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
-                new Thread_(new Runnable_() {
-                    run: function () {
+                new Thread_({
+                    run() {
                         var radius = data[0],
                             hollow = data[1];
-                            
+
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dy = -radius + 1; dy < radius; dy++) { //y 변화량
                                 for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
@@ -1916,8 +1887,8 @@
                                 }
                             }
                         }
-                        
-                        if(thiz.__editCount == Math.pow((2 * radius) - 1), 3)) {
+
+                        if (thiz.__editCount == Math.pow(((2 * radius) - 1), 3)) {
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
@@ -1925,15 +1896,15 @@
                     }
                 }).start();
                 break;
-                
+
             case RenderTypes.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
-                new Thread_(new Runnable_() {
-                    run: function () {
+                new Thread_({
+                    run() {
                         var radius = data[0],
                             hollow = data[1],
                             height = data[2];
-                                
+
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
                                 for (var dh = 0; dh < height; dh++) {
@@ -1950,7 +1921,7 @@
                             }
                         }
 
-                        if(thiz.__editCount == ((Math.pow((2 * radius) - 1), 2)) * height)) {
+                        if (thiz.__editCount == ((Math.pow(((2 * radius) - 1), 2)) * height)) {
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
@@ -1961,7 +1932,7 @@
         }
     };
 
-    Editor.prototype.request = function (type, task, data) {
+    Editor.prototype.request = function(type, task, data) {
         if (type === EditTypes.terrain.TYPE) { //지형 작업 요청
             if (this._paste) { //붙여넣기 작업이 진행중인 경우
                 toast("붙여넣기 모드가 활성화 되어있습니다.\n붙여넣기 작업을 먼저 마친 후에 시도하세요.");
@@ -1972,16 +1943,19 @@
             switch (task) {
                 case EditTypes.terrain.FILL: //data = [채울 블록 아이디, 채울 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i]; //기존 블록 정보
-                            var _block = new Block(block.getVector(), data[0], data[1]); //채워질 블록 정보
-                            _block.set(); //블록 설치
-                            thiz._editedBlock[thiz._taskCount][i].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i]; //기존 블록 정보
+                                var _block = new Block(block.getVector(), data[0], data[1]); //채워질 블록 정보
+                                _block.set(); //블록 설치
+                                thiz._editedBlock[thiz._taskCount][i].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                                Thread_.sleep(50);
+                            }
                         }
-                    }, 50);
+                    }).start();
 
-                    this._taskList.push({ //작업 리스트에 추가
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.FILL,
                         count: this._editCount,
                         content: "id: " + data[0] + ", data: " + data[1] + "로 채우기"
@@ -1993,18 +1967,21 @@
 
                 case EditTypes.terrain.CHANGE: //data = [바꿔질 블록 아이디, 바꿔질 블록 데이터, 바꾼 후의 블록 아이디, 바꾼 후의 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i]; //바뀌기 전 블록 정보
-                            if (block.getId() === data[0] && block.getData() === data[1]) { //만약 바꿔질 블록 정보가 data의 정보랑 같다면
-                                var _block = new Block(block.getVector(), data[2], data[3]); //바뀐 후의 블록 정보
-                                _block.set(); //블록 설치
-                                thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i]; //바뀌기 전 블록 정보
+                                if (block.getId() === data[0] && block.getData() === data[1]) { //만약 바꿔질 블록 정보가 data의 정보랑 같다면
+                                    var _block = new Block(block.getVector(), data[2], data[3]); //바뀐 후의 블록 정보
+                                    _block.set(); //블록 설치
+                                    thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                                    Thread_.sleep(50);
+                                }
                             }
                         }
-                    }, 50);
+                    }).start();
 
-                    this._taskList.push({ //작업 리스트에 추가
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.CHANGE,
                         count: this._editCount,
                         content: "id: " + data[0] + ", data: " + data[1] + "을 id: " + data[2] + ", data: " + data[3] + "으로 바꾸기"
@@ -2017,7 +1994,7 @@
                 case EditTypes.terrain.COPY:
                     this._copiedBlock = this._savedBlock[this._taskCount]; //복사한 지형 = 스캔한 지형
 
-                    this._taskList.push({
+                    Data.task.push({
                         type: EditTypes.terrain.COPY,
                         count: this._editCount,
                         content: this._editCount + "개의 블록을 복사함"
@@ -2028,18 +2005,21 @@
 
                 case EditTypes.terrain.COVER: //data = [덮을 블록 아이디, 덮을 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i];
-                            if (bl.Level.getTile(block.getX(), block.getY(), block.getZ()) != 0 && bl.Level.getTile(block.getX(), block.getY() + 1, block.getZ()) === 0) { //만약 블록의 위가 공기일 때
-                                var _block = new Block(block.getX(), block.getY() + 1, block.getZ(), data[0], data[1]); //덮을 블록 정보
-                                _block.set(); //덮을 블록 설치
-                                thiz._editedBlock[thiz._taskCount].push(_block); //덮은 블록을 수정한 지형 배열에 추가
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i];
+                                if (bl.Level.getTile(block.getX(), block.getY(), block.getZ()) != 0 && bl.Level.getTile(block.getX(), block.getY() + 1, block.getZ()) === 0) { //만약 블록의 위가 공기일 때
+                                    var _block = new Block(block.getX(), block.getY() + 1, block.getZ(), data[0], data[1]); //덮을 블록 정보
+                                    _block.set(); //덮을 블록 설치
+                                    thiz._editedBlock[thiz._taskCount].push(_block); //덮은 블록을 수정한 지형 배열에 추가
+                                    Thread_.sleep(50);
+                                }
                             }
                         }
-                    }, 50);
+                    }).start();
 
-                    this._taskList.push({ //작업 리스트에 추가
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.COVER,
                         count: this._editCount,
                         content: "id: " + data[0] + ", data: " + data[1] + "으로 덮기"
@@ -2050,28 +2030,31 @@
                     break;
 
                 case EditTypes.terrain.WALL: //data = [벽 블록 아이디, 벽 블록 데이터]
-                    var array_map_x = this._savedBlock[this._taskCount].map(function (i) {
+                    var array_map_x = this._savedBlock[this._taskCount].map(function(i) {
                         return i.getX();
                     }); //스캔한 블럭의 x좌표 값
-                    var array_map_z = this._savedBlock[this._taskCount].map(function (i) {
+                    var array_map_z = this._savedBlock[this._taskCount].map(function(i) {
                         return i.getZ();
                     }); //스캔한 블럭의 z좌표 값
 
                     var x = [Math.max.apply(null, array_map_x), Math.min.apply(null, array_map_x)], //x좌표 값의 최대, 최소
                         z = [Math.max.apply(null, array_map_z), Math.min.apply(null, array_map_z)]; //z좌쵸 값의 최대, 최소
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i]; //기존 블록 정보
-                            if (block.getX() === x[0] || block.getX() === x[1] || block.getZ() === z[0] || block.getZ() === z[1]) { //만약 기존 블록의 x or z 좌표가 최대 혹은 최소일 경우
-                                var _block = new Block(block.getVector(), data[0], data[1]); //벽 블록 정보
-                                _block.set(); //블록 설치
-                                thiz._editedBlock[thiz._taskCount].push(_block); //벽 블록 정보를 수정한 지형 배열에 추가
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i]; //기존 블록 정보
+                                if (block.getX() === x[0] || block.getX() === x[1] || block.getZ() === z[0] || block.getZ() === z[1]) { //만약 기존 블록의 x or z 좌표가 최대 혹은 최소일 경우
+                                    var _block = new Block(block.getVector(), data[0], data[1]); //벽 블록 정보
+                                    _block.set(); //블록 설치
+                                    thiz._editedBlock[thiz._taskCount].push(_block); //벽 블록 정보를 수정한 지형 배열에 추가
+                                    Thread_.sleep(50);
+                                }
                             }
                         }
-                    }, 50);
+                    }).start();
 
-                    this._taskList.push({ //작업 리스트에 추가
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.WALL,
                         count: this._editCount,
                         content: "id: " + data[0] + ", data: " + data[1] + "로 벽 만들기"
@@ -2080,19 +2063,22 @@
                     this._editCount = 0; //작업한 블록 수 초기화
                     this._editable = false; //작업 종료
                     break;
-                    
+
                 case EdiTypes.terrain.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i],
-                                _block = new Block(block.getVector(), data[2], data[3]);
-                            _block.set();
-                            thiz._editedBlock[thiz._taskCount].push(_block);
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i],
+                                    _block = new Block(block.getVector(), data[2], data[3]);
+                                _block.set();
+                                thiz._editedBlock[thiz._taskCount].push(_block);
+                                Thread_.sleep(50);
+                            }
                         }
-                    }, 50);
-                    
-                    this._taskList.push({ //작업 리스트에 추가
+                    }).start();
+
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.CIRCLE,
                         radius: data[0],
                         hollow: data[1],
@@ -2103,19 +2089,22 @@
                     this._editCount = 0; //작업한 블록 수 초기화
                     this._editable = false; //작업 종료
                     break;
-                    
+
                 case EditTypes.terrain.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i],
-                                _block = new Block(block.getVector(), data[2], data[3]);
-                            _block.set();
-                            thiz._editedBlock[thiz._taskCount].push(_block);
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i],
+                                    _block = new Block(block.getVector(), data[2], data[3]);
+                                _block.set();
+                                thiz._editedBlock[thiz._taskCount].push(_block);
+                                Thread_.sleep(50);
+                            }
                         }
-                    }, 50);
-                    
-                    this._taskList.push({ //작업 리스트에 추가
+                    }).start();
+
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.SPHERE,
                         radius: data[0],
                         hollow: data[1],
@@ -2126,40 +2115,43 @@
                     this._editCount = 0; //작업한 블록 수 초기화
                     this._editable = false; //작업 종료
                     break;
-                    
+
                 case EditTypes.terrain.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
                     this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
-                    thread(function () {
-                        for(var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
-                            var block = thiz._savedBlock[thiz._taskCount][i],
-                                _block = new Block(block.getVector(), data[3], data[4]);
-                            _block.set();
-                            thiz._editedBlock[thiz._taskCount].push(_block);
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
+                                var block = thiz._savedBlock[thiz._taskCount][i],
+                                    _block = new Block(block.getVector(), data[3], data[4]);
+                                _block.set();
+                                thiz._editedBlock[thiz._taskCount].push(_block);
+                                Thread_.sleep(50);
+                            }
                         }
-                    }, 50);
-                    
-                    this._taskList.push({ //작업 리스트에 추가
+                    }).start();
+
+                    Data.task.push({ //작업 리스트에 추가
                         type: EditTypes.terrain.CYLINDER,
                         radius: data[0],
                         height: data[2],
                         hollow: data[1],
                         count: this._editCount,
-                        content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
+                        content: "id: " + data[3] + ", data: " + data[4] + "로 원기둥 만들기"
                     });
                     this._taskCount++; //작업한 수 증가
                     this._editCount = 0; //작업한 블록 수 초기화
                     this._editable = false; //작업 종료
                     break;
-                    
+
                 case EditTypes.terrain.ROTATE:
                     break;
-                    
+
                 case EditTypes.terrain.FLIP:
                     break;
-                    
+
                 case EditTypes.terrain.UNDO:
                     break;
-                    
+
                 case EditTypes.terrain.REDO:
                     break;
             }
@@ -2170,9 +2162,20 @@
         }
     };
 
-    Editor.prototype.saveFromDirectory = function () {
-        
+    Editor.prototype.saveFromDirectory = function() {
+        var path = DB_PATH + "/world edit/" + this._worldName + ".editor",
+            file = new File(path);
+
+        toast("데이터를 저장합니다.");
+        file.create();
+        file.write(JSON.stringify(Data));
     };
+
+
+
+    function Command() {
+
+    }
 
 
 
@@ -2191,7 +2194,7 @@
 
 
     function makeEditButton() {
-        uiThread(function () {
+        uiThread(function() {
             var gradient = new GradientDrawable_();
             gradient.setCornerRadius(900 * DP);
             gradient.setColor(Color.RED);
@@ -2204,7 +2207,7 @@
             editButton.setBackgroundDrawable(layer);
             editButton.setLayoutParams(new Params_(45 * DP, 45 * DP));
             editButton.setOnTouchListener(new OnTouchListener_() {
-                onTouch: function (view, event) {
+                onTouch: function(view, event) {
                     if (event.getAction() == MotionEvent_.ACTION_DOWN) {
                         mx = event.getRawX();
                         my = event.getRawY();
@@ -2215,8 +2218,8 @@
                         if (Math.abs(mx - _x) < 10 || Math.abs(my - _y) < 10) {
                             return false;
                         }
-       
-                        __window.update(WIDTH - _x, HEIGHT - _y, 45 * DP, 45 * DP);
+
+                        __window.update(WIDTH - _x - 20 * DP, HEIGHT - _y - 20 * DP, 45 * DP, 45 * DP);
                         _moving = true;
                     } else if (event.getAction() == MotionEvent_.ACTION_UP) {
                         if (_moving) {
@@ -2243,16 +2246,17 @@
 
 
 
-    bl.newLevel = function () {
+    bl.newLevel = function() {
         bl.ModPE.setItem(500, "axe", 4, "월드에딧 도구", 1);
         //월드에딧 좌표 설정을 위한 도구 정의
         bl.addItemInventory(500, 1);
 
         editor = new Editor(bl.Level.getWorldName());
+        editor.init();
         //들어간 월드에 해당하는 에디터 로드
 
         //메인 버튼 생성
-        uiThread(function () {
+        uiThread(function() {
             var gradient = new GradientDrawable_();
             gradient.setCornerRadius(900 * DP);
             gradient.setColor(Color_.rgb(90, 110, 255));
@@ -2265,7 +2269,7 @@
             fButton.setBackgroundDrawable(layer);
             fButton.setLayoutParams(new Params_(45 * DP, 45 * DP));
             fButton.setOnTouchListener(new OnTouchListener_() {
-                onTouch: function (view, event) {
+                onTouch: function(view, event) {
                     if (event.getAction() == MotionEvent_.ACTION_DOWN) {
                         x = event.getRawX();
                         y = event.getRawY();
@@ -2277,7 +2281,7 @@
                             return false;
                         }
 
-                        _window.update(WIDTH - _x, HEIGHT - _y, 45 * DP, 45 * DP);
+                        _window.update(WIDTH - _x - 20 * DP, HEIGHT - _y - 20 * DP, 45 * DP, 45 * DP);
                         moving = true;
                     } else if (event.getAction() == MotionEvent_.ACTION_UP) {
                         if (moving) {
@@ -2303,8 +2307,8 @@
 
 
 
-    bl.leaveGame = function () {
-        uiThread(function () {
+    bl.leaveGame = function() {
+        uiThread(function() {
             if (_window != null) {
                 _window.dismiss();
                 _window = null;
@@ -2320,7 +2324,7 @@
 
 
 
-    bl.useItem = function (x, y, z, itemId, blockId, side, itemData, blockData) {
+    bl.useItem = function(x, y, z, itemId, blockId, side, itemData, blockData) {
         if (itemId == 500) {
             pointer = new Pointer(x, y, z);
             toast("시작 지점이 " + pointer.toString() + "으로 설정되었습니다.");
@@ -2329,17 +2333,24 @@
                 makeEditButton();
             }
         }
-    }
+    };
 
 
 
-    bl.startDestroyBlock = function (x, y, z) {
+    bl.startDestroyBlock = function(x, y, z) {
         if (bl.Player.getCarriedItem() == 500) {
             preventDefault();
             _pointer = new Pointer(x, y, z);
             toast("종료 지점이 " + _pointer.toString() + "으로 설정되었습니다.");
         }
-    }
+    };
+
+
+
+    bl.entityAddedHook = function(ent) {
+
+    };
+
 
 
 })(this);
