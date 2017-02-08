@@ -469,34 +469,34 @@
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_mode_edit_white_48dp.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.COG = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_cog.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.BORDER_COLOR = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_border_color_white_48dp.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.HELP = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_help.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.CODEPEN = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_codepen.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
+
     Drawable.WEBEX = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_cisco_webex.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
     };
-    
-    
-    
+
+
+
     Drawable.setPadding = function(drawable, l, t, r, b) {
         var layer = new LayerDrawable_([drawable]);
         layer.setLayerInset(0, l, t, r, b);
@@ -623,12 +623,11 @@
                 }
 
                 if (circle_point_x == thiz._width / 2) {
-                    thiz._view.setBackgroundDrawable(thiz._drawable);
-
                     if (thiz._event != null && !click) {
                         thiz._event(thiz._view);
                     }
 
+                    thiz._view.setBackgroundDrawable(thiz._drawable);
                     click = true;
                 }
             }
@@ -732,7 +731,7 @@
         this._view.setBackgroundDrawable(drawable);
         return this;
     };
-    
+
     Button.prototype.setDuration = function(duration) {
         this._duration = duration;
         return this;
@@ -764,27 +763,35 @@
                         return true;
 
                     case MotionEvent_.ACTION_UP:
-                        new RippleDrawable()
-                            .setView(thiz._view)
-                            .setWH(view.getWidth(), view.getHeight())
-                            .setHotSpot(event.getX(), event.getY())
-                            .setDuration(thiz._duration)
-                            .setEffectColor(thiz._effectColor)
-                            .setBackgroundDrawable(thiz._drawable)
-                            .setEvent(thiz._listener)
-                            .start();
+                        if (thiz._duration != 0) {
+                            new RippleDrawable()
+                                .setView(thiz._view)
+                                .setWH(view.getWidth(), view.getHeight())
+                                .setHotSpot(event.getX(), event.getY())
+                                .setDuration(thiz._duration)
+                                .setEffectColor(thiz._effectColor)
+                                .setBackgroundDrawable(thiz._drawable)
+                                .setEvent(thiz._listener)
+                                .start();
+                        } else if (thiz._duration == 0) {
+                            thiz._listener(view);
+                        }
                         return true;
 
                     case MotionEvent_.ACTION_CANCEL:
-                        new RippleDrawable()
-                            .setView(thiz._view)
-                            .setWH(view.getWidth(), view.getHeight())
-                            .setHotSpot(event.getX(), event.getY())
-                            .setDuration(thiz._duration)
-                            .setEffectColor(thiz._effectColor)
-                            .setBackgroundDrawable(thiz._drawable)
-                            .setEvent(thiz._listener)
-                            .start();
+                        if (thiz._duration != 0) {
+                            new RippleDrawable()
+                                .setView(thiz._view)
+                                .setWH(view.getWidth(), view.getHeight())
+                                .setHotSpot(event.getX(), event.getY())
+                                .setDuration(thiz._duration)
+                                .setEffectColor(thiz._effectColor)
+                                .setBackgroundDrawable(thiz._drawable)
+                                .setEvent(thiz._listener)
+                                .start();
+                        } else if (thiz._duration == 0) {
+                            thiz._listener(view);
+                        }
                         return true;
                 }
             }
@@ -1186,6 +1193,7 @@
                 uiThread(function() {
                     that.sideLayout.removeAllViews();
                     that.mainLayout.removeAllViews();
+                    if (that.contentView != null) that.ml.removeView(that.contentView);
                     that.window.dismiss();
                     that.dismissListener();
                 });
@@ -1241,13 +1249,13 @@
         this.contentView = view;
         return this;
     };
-    
+
     PopupWindow.prototype.setTextColor = function(color) {
         this.title.setTextColor(color);
         this.menuBtn.setBackgroundDrawable(Drawable.setPadding(Drawable.MENU(color), 3 * dp, 3 * dp, 3 * dp, 3 * dp));
         this.close.setBackgroundDrawable(Drawable.CLOSE(color));
     };
-    
+
     PopupWindow.prototype.removeAllView = function() {
         this.ml.removeView(this.contentView);
     };
@@ -1255,7 +1263,7 @@
     PopupWindow.prototype.setMenuLayout = function(v) {
         this.sideLayout.addView(v);
     };
-    
+
     PopupWindow.prototype.setMenuLayoutColor = function(color) {
         this.sideLayout.setBackgroundColor(color);
     };
@@ -1276,6 +1284,75 @@
     function Dialog() {
 
     }
+
+
+
+    function Item() {
+        this._view = new LinearLayout_(CONTEXT);
+        this._textView = new TextView_(CONTEXT);
+        this._button = new Button();
+        this.width = null;
+        this.height = null;
+        this.buttonWidth = 150 * dp;
+        this.buttonHeight = 35 * dp;
+
+        this._view.setGravity(Gravity_.LEFT | Gravity_.CENTER);
+        this._textView.setTextColor(Color_.BLACK);
+        this._textView.setTextSize(16);
+        this._textView.setGravity(Gravity_.LEFT | Gravity_.CENTER);
+        this._textView.setPadding(10 * dp, 0, 0, 0);
+        this._button.setTextColor(Color_.BLACK);
+    }
+
+    Item.prototype.setText = function(text) {
+        this._textView.setText(text);
+        return this;
+    };
+
+    Item.prototype.setWH = function(_width, _height) {
+        this._view.setLayoutParams(new Params_(_width, _height));
+        this.width = _width;
+        this.height = _height;
+        return this;
+    };
+
+    Item.prototype.setEvent = function(event) {
+        this._button.setEvent(event);
+        return this;
+    };
+
+    Item.prototype.setColor = function(color) {
+        this._button.setBackgroundDrawable(new ColorDrawable_(color));
+        return this;
+    };
+
+    Item.prototype.setEffectColor = function(color) {
+        this._button.setEffectColor(color);
+        return this;
+    };
+
+    Item.prototype.setButtonText = function(text) {
+        this._button.setText(text);
+        return this;
+    };
+
+    Item.prototype.setButtonWH = function(w, h) {
+        this.buttonWidth = w;
+        this.buttonHeight = h;
+        this._button.setWH(w, h);
+        return this;
+    };
+
+    Item.prototype.setTextColor = function(color) {
+        this._button.setTextColor(color);
+        return this;
+    };
+
+    Item.prototype.get = function() {
+        this._view.addView(this._textView, this.width - this.buttonWidth, this.height);
+        this._view.addView(this._button.get());
+        return this._view;
+    };
 
 
 
@@ -1589,25 +1666,6 @@
 
 
 
-    function getEditVector(p1, p2) { //지형 스캔시 사용할 벡터 및 두 포인터 사이 거리를 반환합니다
-        var start = [],
-            end = [];
-
-        p1.getLocation(start);
-        p2.getLocation(end);
-        //두 포인터의 좌표를 받아옵니다
-
-        return {
-            start: new Vector3(Math.min(start[0], end[0]), Math.min(start[1], end[1]), Math.min(start[2], end[2])),
-            end: new Vector3(Math.max(start[0], end[0]), Math.max(start[1], end[1]), Math.max(start[2], end[2])),
-            dx: Math.abs(start[0] - end[0] + 1),
-            dy: Math.abs(start[1] - end[1] + 1),
-            dz: Math.abs(start[2] - end[2] + 1)
-        };
-    }
-
-
-
     function Pointer(x, y, z) {
         if (x instanceof Vector3) {
             this.x = x.x;
@@ -1634,10 +1692,6 @@
         }
     };
 
-    Pointer.prototype.getLocation = function(array) {
-        array = [this.x, this.y, this.z];
-    };
-
     Pointer.prototype.getX = function() {
         return this.x;
     };
@@ -1653,6 +1707,29 @@
     Pointer.prototype.toString = function() {
         return "[ " + ([this.x, this.y, this.z]).join(", ") + " ]";
     };
+
+    Pointer.prototype.toArray = function() {
+        return [this.x, this.y, this.z];
+    };
+
+
+
+    function getEditVector(p1, p2) { //지형 스캔시 사용할 벡터 및 두 포인터 사이 거리를 반환합니다
+        var start = [],
+            end = [];
+
+        start = p1.toArray();
+        end = p2.toArray();
+        //두 포인터의 좌표를 받아옵니다
+
+        return {
+            start: new Vector3(Math.min(start[0], end[0]), Math.min(start[1], end[1]), Math.min(start[2], end[2])),
+            end: new Vector3(Math.max(start[0], end[0]), Math.max(start[1], end[1]), Math.max(start[2], end[2])),
+            dx: Math.abs(start[0] - end[0]) + 1,
+            dy: Math.abs(start[1] - end[1]) + 1,
+            dz: Math.abs(start[2] - end[2]) + 1
+        };
+    }
 
 
 
@@ -1794,9 +1871,6 @@
 
 
 
-
-
-
     const EditTypes = {
         terrain: {
             TYPE: "terrain_edit",
@@ -1845,7 +1919,10 @@
         ban: [],
         editablePlayer: [],
         titleColor: Color_.parseColor("#4CAF50"),
-        sideColor: Color_.parseColor("#43A047")
+        sideColor: Color_.parseColor("#43A047"),
+        buttonColor: Color_.parseColor("#CDDC39"),
+        buttonEffectColor: Color_.parseColor("#C0CA33"),
+        speed: 5
     };
 
     function Editor(name) {
@@ -1886,22 +1963,25 @@
         //스캔한 블럭을 담을 배열 생성
         switch (type) {
             case RenderTypes.CUBE:
+                if (pointer == null || _pointer == null) {
+                    toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
+                    return;
+                }
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
+                var editVector = getEditVector(p1, p2);
                 new Thread_({
                     run() {
-                        var editVector = getEditVector(p1, p2);
-
                         for (var dx = 0; dx < editVector.dx; dx++) { //x 변화량
                             for (var dy = 0; dy < editVector.dy; dy++) { //y 변화량
                                 for (var dz = 0; dz < editVector.dz; dz++) { //z 변화량
                                     thiz._savedBlock[thiz._taskCount].push(new Block(editVector.start.getX() + dx, editVector.start.getY() + dy, editVector.start.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     thiz._editCount++; //스캔한 블록의 수
-                                    Thread_.sleep(50);
+                                    Thread_.sleep(Data.speed);
                                 }
                             }
                         }
 
-                        if (thiz._editCount === editVector.dx * editVector.dy * editVectory.dz) { //스캔한 블록의 수가 지정한 범위 안의 블록 수와 일치할 때
+                        if (thiz._editCount === editVector.dx * editVector.dy * editVector.dz) { //스캔한 블록의 수가 지정한 범위 안의 블록 수와 일치할 때
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
@@ -1911,6 +1991,10 @@
                 break;
 
             case RenderTypes.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
+                if (pointer == null) {
+                    toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
+                    return;
+                }
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 new Thread_({
                     run() {
@@ -1927,7 +2011,7 @@
                                     thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     thiz._editCount++;
                                 }
-                                Thread_.sleep(50);
+                                Thread_.sleep(Data.speed);
                             }
                         }
 
@@ -1941,6 +2025,10 @@
                 break;
 
             case RenderTypes.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
+                if (pointer == null) {
+                    toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
+                    return;
+                }
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 new Thread_({
                     run() {
@@ -1958,7 +2046,7 @@
                                         thiz._editCount++;
                                         thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     }
-                                    Thread_.sleep(50);
+                                    Thread_.sleep(Data.speed);
                                 }
                             }
                         }
@@ -1973,6 +2061,10 @@
                 break;
 
             case RenderTypes.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
+                if (pointer == null) {
+                    toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
+                    return;
+                }
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 new Thread_({
                     run() {
@@ -1992,7 +2084,7 @@
                                         thiz._editCount++;
                                     }
                                 }
-                                Thread_.sleep(50);
+                                Thread_.sleep(Data.speed);
                             }
                         }
 
@@ -2015,33 +2107,34 @@
             }
 
             const thiz = this;
+            this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
             switch (task) {
                 case EditTypes.terrain.FILL: //data = [채울 블록 아이디, 채울 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
                                 var block = thiz._savedBlock[thiz._taskCount][i]; //기존 블록 정보
                                 var _block = new Block(block.getVector(), data[0], data[1]); //채워질 블록 정보
                                 _block.set(); //블록 설치
-                                thiz._editedBlock[thiz._taskCount][i].push(_block); //설치한 블록을 수정한 지형 배열에 추가
-                                Thread_.sleep(50);
+                                thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                                Thread_.sleep(Data.speed);
+
+                                if (i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.FILL,
+                                        count: thiz._editCount,
+                                        content: "id: " + data[0] + ", data: " + data[1] + "로 채우기"
+                                    });
+                                    thiz._taskCount++; //작업한 수 증가
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz._editable = false; //작업 종료
+                                }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.FILL,
-                        count: this._editCount,
-                        content: "id: " + data[0] + ", data: " + data[1] + "로 채우기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.CHANGE: //data = [바꿔질 블록 아이디, 바꿔질 블록 데이터, 바꾼 후의 블록 아이디, 바꾼 후의 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2050,36 +2143,37 @@
                                     var _block = new Block(block.getVector(), data[2], data[3]); //바뀐 후의 블록 정보
                                     _block.set(); //블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
-                                    Thread_.sleep(50);
+                                    Thread_.sleep(Data.speed);
+
+                                    if (i == len - 1) {
+                                        Data.task.push({ //작업 리스트에 추가
+                                            type: EditTypes.terrain.CHANGE,
+                                            count: thiz._editCount,
+                                            content: "id: " + data[0] + ", data: " + data[1] + "을 id: " + data[2] + ", data: " + data[3] + "으로 바꾸기"
+                                        });
+                                        thiz._taskCount++; //작업한 수 증가
+                                        thiz._editCount = 0; //작업한 블록 수 초기화
+                                        thiz._editable = false; //작업 종료
+                                    }
                                 }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.CHANGE,
-                        count: this._editCount,
-                        content: "id: " + data[0] + ", data: " + data[1] + "을 id: " + data[2] + ", data: " + data[3] + "으로 바꾸기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.COPY:
-                    this._copiedBlock = this._savedBlock[this._taskCount]; //복사한 지형 = 스캔한 지형
+                    thiz._copiedBlock = thiz._savedBlock[thiz._taskCount]; //복사한 지형 = 스캔한 지형
 
                     Data.task.push({
                         type: EditTypes.terrain.COPY,
-                        count: this._editCount,
-                        content: this._editCount + "개의 블록을 복사함"
+                        count: thiz._editCount,
+                        content: thiz._editCount + "개의 블록을 복사함"
                     });
-                    this.paste = true;
-                    this._editCount = 0;
+                    thiz.paste = true;
+                    thiz._editCount = 0;
                     break;
 
                 case EditTypes.terrain.COVER: //data = [덮을 블록 아이디, 덮을 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2088,20 +2182,22 @@
                                     var _block = new Block(block.getX(), block.getY() + 1, block.getZ(), data[0], data[1]); //덮을 블록 정보
                                     _block.set(); //덮을 블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //덮은 블록을 수정한 지형 배열에 추가
-                                    Thread_.sleep(50);
+                                    Thread_.sleep(Data.speed);
+
+                                    if (i == len - 1) {
+                                        Data.task.push({ //작업 리스트에 추가
+                                            type: EditTypes.terrain.COVER,
+                                            count: thiz._editCount,
+                                            content: "id: " + data[0] + ", data: " + data[1] + "으로 덮기"
+                                        });
+                                        thiz._taskCount++; //작업한 수 증가
+                                        thiz._editCount = 0; //작업한 블록 수 초기화
+                                        thiz._editable = false; //작업 종료
+                                    }
                                 }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.COVER,
-                        count: this._editCount,
-                        content: "id: " + data[0] + ", data: " + data[1] + "으로 덮기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.WALL: //data = [벽 블록 아이디, 벽 블록 데이터]
@@ -2114,7 +2210,6 @@
 
                     var x = [Math.max.apply(null, array_map_x), Math.min.apply(null, array_map_x)], //x좌표 값의 최대, 최소
                         z = [Math.max.apply(null, array_map_z), Math.min.apply(null, array_map_z)]; //z좌쵸 값의 최대, 최소
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2123,24 +2218,25 @@
                                     var _block = new Block(block.getVector(), data[0], data[1]); //벽 블록 정보
                                     _block.set(); //블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //벽 블록 정보를 수정한 지형 배열에 추가
-                                    Thread_.sleep(50);
+                                    Thread_.sleep(Data.speed);
+
+                                    if (i == len - 1) {
+                                        Data.task.push({ //작업 리스트에 추가
+                                            type: EditTypes.terrain.WALL,
+                                            count: thiz._editCount,
+                                            content: "id: " + data[0] + ", data: " + data[1] + "로 벽 만들기"
+                                        });
+                                        thiz._taskCount++; //작업한 수 증가
+                                        thiz._editCount = 0; //작업한 블록 수 초기화
+                                        thiz._editable = false; //작업 종료
+                                    }
                                 }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.WALL,
-                        count: this._editCount,
-                        content: "id: " + data[0] + ", data: " + data[1] + "로 벽 만들기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EdiTypes.terrain.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2148,25 +2244,26 @@
                                     _block = new Block(block.getVector(), data[2], data[3]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
-                                Thread_.sleep(50);
+                                Thread_.sleep(Data.speed);
+
+                                if (i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.CIRCLE,
+                                        radius: data[0],
+                                        hollow: data[1],
+                                        count: thiz._editCount,
+                                        content: "id: " + data[2] + ", data: " + data[3] + "로 원 만들기"
+                                    });
+                                    thiz._taskCount++; //작업한 수 증가
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz._editable = false; //작업 종료
+                                }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.CIRCLE,
-                        radius: data[0],
-                        hollow: data[1],
-                        count: this._editCount,
-                        content: "id: " + data[2] + ", data: " + data[3] + "로 원 만들기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.SPHERE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2174,25 +2271,26 @@
                                     _block = new Block(block.getVector(), data[2], data[3]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
-                                Thread_.sleep(50);
+                                Thread_.sleep(Data.speed);
+
+                                if (i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.SPHERE,
+                                        radius: data[0],
+                                        hollow: data[1],
+                                        count: thiz._editCount,
+                                        content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
+                                    });
+                                    thiz._taskCount++; //작업한 수 증가
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz._editable = false; //작업 종료
+                                }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.SPHERE,
-                        radius: data[0],
-                        hollow: data[1],
-                        count: this._editCount,
-                        content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.CYLINDER: //data = [반지름, 속 비우기 여부, 높이, 블록 아이디, 블록 데이터]
-                    this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2200,22 +2298,24 @@
                                     _block = new Block(block.getVector(), data[3], data[4]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
-                                Thread_.sleep(50);
+                                Thread_.sleep(Data.speed);
+
+                                if (i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.CYLINDER,
+                                        radius: data[0],
+                                        height: data[2],
+                                        hollow: data[1],
+                                        count: thiz._editCount,
+                                        content: "id: " + data[3] + ", data: " + data[4] + "로 원기둥 만들기"
+                                    });
+                                    thiz._taskCount++; //작업한 수 증가
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz._editable = false; //작업 종료
+                                }
                             }
                         }
                     }).start();
-
-                    Data.task.push({ //작업 리스트에 추가
-                        type: EditTypes.terrain.CYLINDER,
-                        radius: data[0],
-                        height: data[2],
-                        hollow: data[1],
-                        count: this._editCount,
-                        content: "id: " + data[3] + ", data: " + data[4] + "로 원기둥 만들기"
-                    });
-                    this._taskCount++; //작업한 수 증가
-                    this._editCount = 0; //작업한 블록 수 초기화
-                    this._editable = false; //작업 종료
                     break;
 
                 case EditTypes.terrain.ROTATE:
@@ -2268,74 +2368,226 @@
     var x, y, mx, my,
         moving = false,
         _moving = false;
-        
-    var side_layout = new LinearLayout_(CONTEXT);
-    side_layout.setGravity(Gravity_.CENTER);
-    side_layout.setOrientation(1);
-    side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //main_window.removeAllViews();
-        })
-        .get());
-    
-    side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.BORDER_COLOR(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //main_window.removeAllViews();
-        })
-        .get());
-    
-    side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.HELP(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //main_window.removeAllViews();
-            var layout = new LinearLayout_(CONTEXT);
-            layout.setOrientation(1);
-        })
-        .get());
-        
-    var edit_side_layout = new LinearLayout_(CONTEXT);
-    edit_side_layout.setOrientation(1);
-    edit_side_layout.setGravity(Gravity_.CENTER);
-    edit_side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //edit_window.removeAllViews();
-        })
-        .get());
-    
-    edit_side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //edit_window.removeAllViews();
-        })
-        .get());
-        
-    edit_side_layout.addView(new Button()
-        .setText("")
-        .setWH(45 * dp, 45 * dp)
-        .setEffectColor(Color_.argb(0, 0, 0, 0))
-        .setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-        .setEvent(function(v) {
-            //edit_window.removeAllViews();
-        })
-        .get());
+
+
+
+
+    function EditWindow() {
+        uiThread(function() {
+            var edit_side_layout = new LinearLayout_(CONTEXT);
+            edit_side_layout.setOrientation(1);
+            edit_side_layout.setGravity(Gravity_.CENTER);
+            var server_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]))
+                .setEvent(function(v) {
+                    //edit_window.removeAllViews();
+                    server_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(server_edit.get());
+
+            var cube_terrain_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    cube_terrain_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.CODEPEN(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(cube_terrain_edit.get());
+
+            var figure_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setDuration(0)
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    figure_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.WEBEX(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(figure_edit.get());
+
+            var setting = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    setting.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.COG(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(setting.get());
+
+
+            var main_layout = new LinearLayout_(CONTEXT);
+            main_layout.setOrientation(1);
+            main_layout.setPadding(0, 0, 0, 3 * dp);
+            main_layout.addView(new Item()
+                .setText("undo 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("undo")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("redo 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("redo")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("채우기 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+                    editor.render(pointer, _pointer, RenderTypes.CUBE, EditTypes.terrain.FILL, [1, 0]);
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("바꾸기 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("덮기 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("벽 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("복사 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("copy")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("붙어넣기 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("paste")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("원 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("구 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+
+            main_layout.addView(new Item()
+                .setText("원기둥 작업 실행")
+                .setWH(397 * dp, 45 * dp)
+                .setEvent(function() {
+
+                })
+                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonText("edit")
+                .setColor(Data.buttonColor)
+                .setEffectColor(Data.buttonEffectColor)
+                .get());
+            var scroll = new ScrollView_(CONTEXT);
+            scroll.addView(main_layout);
+
+
+            edit_window = new PopupWindow();
+            edit_window.setTitle("Terrain Edit Window");
+            edit_window.setOnDismissListener(function() {
+                edit_window = null;
+            });
+            edit_window.setMenuLayout(edit_side_layout);
+            edit_window.setContentView(scroll);
+            edit_window.setTextColor(Color_.BLACK);
+            edit_window.setTitleColor(Data.titleColor);
+            edit_window.setMenuLayoutColor(Data.sideColor);
+            edit_window.setWidth(450 * dp);
+            edit_window.setHeight(300 * dp);
+            edit_window.show();
+        });
+    }
 
 
 
@@ -2344,8 +2596,8 @@
         uiThread(function() {
             var gradient = new GradientDrawable_();
             gradient.setCornerRadius(900 * dp);
-            gradient.setColor(Color.RED);
-            gradient.setStroke(3 * dp, Color.RED_ACCENT);
+            gradient.setColor(Color_.parseColor("#212121"));
+            gradient.setStroke(3 * dp, Color_.parseColor("#424242"));
             var layer = new LayerDrawable_([gradient, Drawable.EDIT(Color.WHITE)]);
             layer.setLayerInset(1, 10 * dp, 10 * dp, 10 * dp, 10 * dp);
 
@@ -2374,19 +2626,8 @@
                             return true;
                         }
                         if (!_moving && event.getX() >= 0 && event.getX() <= 45 * dp && event.getY() >= 0 && event.getY() <= 45 * dp) {
-                            if(edit_window == null) {
-                                edit_window = new PopupWindow();
-                                edit_window.setTitle("Terrain Edit Window");
-                                edit_window.setOnDismissListener(function() {
-                                    edit_window = null;
-                                });
-                                edit_window.setMenuLayout(edit_side_layout);
-                                edit_window.setTextColor(Color_.BLACK);
-                                edit_window.setTitleColor(Data.titleColor);
-                                edit_window.setMenuLayoutColor(Data.sideColor);
-                                edit_window.setWidth(450 * dp);
-                                edit_window.setHeight(300 * dp);
-                                edit_window.show();
+                            if (edit_window == null) {
+                                EditWindow();
                             }
                         }
                     }
@@ -2400,7 +2641,7 @@
             __window.setContentView(__layout);
             __window.setWidth(-2);
             __window.setHeight(-2);
-            __window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.BOTTOM | Gravity_.RIGHT, 0, 50 * dp);
+            __window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.BOTTOM | Gravity_.RIGHT, 0, 0);
         });
     }
 
@@ -2415,71 +2656,9 @@
         editor.init();
         //들어간 월드에 해당하는 에디터 로드
 
-        //메인 버튼 생성
-        uiThread(function() {
-            var gradient = new GradientDrawable_();
-            gradient.setCornerRadius(900 * dp);
-            gradient.setColor(Color_.rgb(90, 110, 255));
-            gradient.setStroke(3 * dp, Color_.rgb(70, 90, 255));
-            var layer = new LayerDrawable_([gradient, Drawable.MENU(Color.WHITE)]);
-            layer.setLayerInset(1, 13 * dp, 10 * dp, 13 * dp, 10 * dp);
-
-            fButton = new Button_(CONTEXT);
-            fButton.setText("");
-            fButton.setBackgroundDrawable(layer);
-            fButton.setLayoutParams(new Params_(45 * dp, 45 * dp));
-            fButton.setOnTouchListener(new OnTouchListener_() {
-                onTouch: function(view, event) {
-                    if (event.getAction() == MotionEvent_.ACTION_DOWN) {
-                        x = event.getRawX();
-                        y = event.getRawY();
-                    } else if (event.getAction() == MotionEvent_.ACTION_MOVE) {
-                        var _x = event.getRawX();
-                        var _y = event.getRawY();
-
-                        if (Math.abs(x - _x) < 10 || Math.abs(y - _y) < 10) {
-                            return false;
-                        }
-
-                        _window.update(WIDTH - _x - 20 * dp, HEIGHT - _y - 20 * dp, 45 * dp, 45 * dp);
-                        moving = true;
-                    } else if (event.getAction() == MotionEvent_.ACTION_UP) {
-                        if (moving) {
-                            moving = false;
-                            return true;
-                        }
-                        if (!moving && event.getX() >= 0 && event.getX() <= 45 * dp && event.getY() >= 0 && event.getY() <= 45 * dp) {
-                            if(main_window == null) { try {
-                                main_window = new PopupWindow();
-                                main_window.setTitle("ModPE World Editor - v1.0");
-                                main_window.setOnDismissListener(function() {
-                                    main_window = null;
-                                });
-                                main_window.setMenuLayout(side_layout);
-                                main_window.setTextColor(Color_.BLACK);
-                                main_window.setTitleColor(Data.titleColor);
-                                main_window.setMenuLayoutColor(Data.sideColor);
-                                main_window.setWidth(450 * dp);
-                                main_window.setHeight(300 * dp);
-                                main_window.show();
-                                }catch(err) {
-                                    error(err);
-                                }
-                            }
-                        }
-                    }
-                    return false;
-                }
-            });
-
-            _window = new PopupWindow_();
-            var _layout = new LinearLayout_(CONTEXT);
-            _layout.addView(fButton);
-            _window.setContentView(_layout);
-            _window.setWidth(-2);
-            _window.setHeight(-2);
-            _window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.BOTTOM | Gravity_.RIGHT, 0, 0);
-        });
+        if (__window == null) {
+            makeEditButton();
+        }
     };
 
 
@@ -2505,10 +2684,6 @@
         if (itemId == 500) {
             pointer = new Pointer(x, y, z);
             toast("시작 지점이 " + pointer.toString() + "으로 설정되었습니다.");
-
-            if (__window == null) {
-                makeEditButton();
-            }
         }
     };
 
