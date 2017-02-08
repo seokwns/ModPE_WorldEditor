@@ -57,7 +57,7 @@
         TypedValue_ = android.util.TypedValue,
         Environment_ = android.os.Environment,
         ConnectivityManager_ = android.net.ConnectivityManager,
-        DP = TypedValue_.applyDimension(TypedValue_.COMPLEX_UNIT_DIP, 1, CONTEXT.getResources().getDisplayMetrics()),
+        dp = TypedValue_.applyDimension(TypedValue_.COMPLEX_UNIT_DIP, 1, CONTEXT.getResources().getDisplayMetrics()),
         SDCARD = Environment_.getExternalStorageDirectory().getAbsolutePath(),
         DB_PATH = SDCARD + "/Astin/";
 
@@ -386,7 +386,7 @@
      * @param {Number} y
      * @param {Number} color
      * @param {android.graphics.drawable.Drawable} drawable
-     * @param {Number} [radius=15*DP] radius
+     * @param {Number} [radius=15*dp] radius
      * @param {Number} alpha
      */
     Canvas.drawCircle = function(view, width, height, x, y, color, drawable, radius, alpha) {
@@ -401,7 +401,7 @@
         }
 
         paint.setAntiAlias(true);
-        canvas.drawCircle(x, y, (radius === null ? 15 * DP : radius), paint);
+        canvas.drawCircle(x, y, (radius === null ? 15 * dp : radius), paint);
 
         if (drawable === null) {
             view.setBackgroundDrawable(new BitmapDrawable_(bm));
@@ -468,6 +468,39 @@
     Drawable.EDIT = color => {
         var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_mode_edit_white_48dp.png");
         return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    Drawable.COG = color => {
+        var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_cog.png");
+        return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    Drawable.BORDER_COLOR = color => {
+        var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_border_color_white_48dp.png");
+        return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    Drawable.HELP = color => {
+        var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_help.png");
+        return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    Drawable.CODEPEN = color => {
+        var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_codepen.png");
+        return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    Drawable.WEBEX = color => {
+        var image = new BitmapFactory_.decodeFile(DB_PATH + "ic_cisco_webex.png");
+        return Drawable.setTint(new BitmapDrawable_(image), color);
+    };
+    
+    
+    
+    Drawable.setPadding = function(drawable, l, t, r, b) {
+        var layer = new LayerDrawable_([drawable]);
+        layer.setLayerInset(0, l, t, r, b);
+        return layer;
     };
 
 
@@ -567,8 +600,8 @@
      * @since 2016-8-29
      */
     RippleDrawable.prototype.start = function() {
-        var radius = 10 * DP,
-            max_radius = (this._max_radius == null ? ((Math.hypot(this._width, this._height) / 2) + 100 * DP) : this._max_radius),
+        var radius = 10 * dp,
+            max_radius = (this._max_radius == null ? ((Math.hypot(this._width, this._height) / 2) + 100 * dp) : this._max_radius),
             click = false;
 
         var valueAnimator = ValueAnimator_.ofFloat([radius, max_radius]),
@@ -625,7 +658,7 @@
 
     ShadeDrawable.prototype.create = function() {
         var layerDrawable = new LayerDrawable_([this.resource, new ColorDrawable_(Color_.WHITE)]);
-        layerDrawable.setLayerInset(0, 3 * DP, 6 * DP, 3 * DP, 2 * DP);
+        layerDrawable.setLayerInset(0, 3 * dp, 6 * dp, 3 * dp, 2 * dp);
         return layerDrawable;
     };
 
@@ -637,6 +670,7 @@
         this._width = 0;
         this._height = 0;
         this._drawable = null;
+        this._duration = 200;
         this._listener = () => {};
     }
 
@@ -695,6 +729,12 @@
 
     Button.prototype.setBackgroundDrawable = function(drawable) {
         this._drawable = drawable;
+        this._view.setBackgroundDrawable(drawable);
+        return this;
+    };
+    
+    Button.prototype.setDuration = function(duration) {
+        this._duration = duration;
         return this;
     };
 
@@ -728,6 +768,7 @@
                             .setView(thiz._view)
                             .setWH(view.getWidth(), view.getHeight())
                             .setHotSpot(event.getX(), event.getY())
+                            .setDuration(thiz._duration)
                             .setEffectColor(thiz._effectColor)
                             .setBackgroundDrawable(thiz._drawable)
                             .setEvent(thiz._listener)
@@ -739,6 +780,7 @@
                             .setView(thiz._view)
                             .setWH(view.getWidth(), view.getHeight())
                             .setHotSpot(event.getX(), event.getY())
+                            .setDuration(thiz._duration)
                             .setEffectColor(thiz._effectColor)
                             .setBackgroundDrawable(thiz._drawable)
                             .setEvent(thiz._listener)
@@ -759,7 +801,7 @@
 
     function CircleButton() {
         this._view = new Button_(CONTEXT);
-        this._radius = 50 * DP;
+        this._radius = 50 * dp;
         this._color = Color_.BLACK;
         this._effectColor = Color_.rgb(0, 150, 255);
         this.drawable = null;
@@ -928,7 +970,7 @@
     CheckBox.prototype.get = function() {
         var thiz = this;
         this._view.setBackgroundDrawable(es.astin.graphics.drawable.CHECKBOX_OFF(this._color));
-        this._view.setLayoutParams(new Params_(30 * DP, 30 * DP));
+        this._view.setLayoutParams(new Params_(30 * dp, 30 * dp));
         this._view.setOnCheckedChangeListener(new OnCheckedChangeListener_({
             onCheckedChanged: (toggle, isChecked) => {
                 if (isChecked) {
@@ -944,7 +986,7 @@
         }));
         this._viewLayout.addView(this._view);
 
-        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * DP, this._HEIGHT));
+        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * dp, this._HEIGHT));
         this._viewLayout.addView(this._textView);
 
         return this._viewLayout;
@@ -1028,7 +1070,7 @@
     RadioButton.prototype.get = function() {
         var thiz = this;
         this._view.setBackgroundDrawable(es.astin.graphics.drawable.RADIO_OFF(this._color));
-        this._view.setLayoutParams(new Params_(30 * DP, 30 * DP));
+        this._view.setLayoutParams(new Params_(30 * dp, 30 * dp));
         this._view.setOnCheckedChangeListener(new OnCheckedChangeListener_({
             onCheckedChanged: (toggle, isChecked) => {
                 if (isChecked) {
@@ -1044,7 +1086,7 @@
         }));
         this._viewLayout.addView(this._view);
 
-        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * DP, this._HEIGHT));
+        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * dp, this._HEIGHT));
         this._viewLayout.addView(this._textView);
 
         return this._viewLayout;
@@ -1111,12 +1153,13 @@
         this.titleLayout.setBackgroundColor(Color_.rgb(30, 30, 30));
 
         var layer = new LayerDrawable_([Drawable.MENU(Color.WHITE)]);
-        layer.setLayerInset(0, 3 * DP, 3 * DP, 3 * DP, 3 * DP);
-        this.titleLayout.addView(new Space().setWH(10 * DP, 1).get());
+        layer.setLayerInset(0, 3 * dp, 3 * dp, 3 * dp, 3 * dp);
+        this.titleLayout.addView(new Space().setWH(10 * dp, 1).get());
         this.menuBtn = new Button()
             .setText("")
             .setTextColor(Color_.WHITE)
-            .setWH(20 * DP, 20 * DP)
+            .setWH(25 * dp, 25 * dp)
+            .setDuration(0)
             .setEffectColor(Color_.argb(0, 0, 0, 0))
             .setBackgroundDrawable(layer)
             .setEvent(function(view) {
@@ -1124,29 +1167,41 @@
             });
         this.titleLayout.addView(this.menuBtn.get());
 
-        this.titleLayout.addView(new Space().setWH(10 * DP, 1).get());
+        this.titleLayout.addView(new Space().setWH(10 * dp, 1).get());
         this.title = new TextView_(CONTEXT);
         this.title.setText("Title");
+        this.title.setBackgroundDrawable(null);
+        this.title.setPadding(5 * dp, 0, 0, 0);
         this.title.setTextColor(Color_.WHITE);
         this.title.setGravity(Gravity_.LEFT | Gravity_.CENTER);
-        this.titleLayout.addView(this.title, WIDTH - 70 * DP, 45 * DP);
+        this.titleLayout.addView(this.title, WIDTH - 75 * dp, 45 * dp);
 
         this.close = new Button()
             .setText("")
-            .setWH(20 * DP, 20 * DP)
+            .setWH(20 * dp, 20 * dp)
+            .setDuration(0)
             .setEffectColor(Color_.argb(0, 0, 0, 0))
             .setBackgroundDrawable(Drawable.CLOSE(Color.WHITE))
             .setEvent(function(view) {
                 uiThread(function() {
+                    that.sideLayout.removeAllViews();
+                    that.mainLayout.removeAllViews();
                     that.window.dismiss();
                     that.dismissListener();
                 });
             });
         this.titleLayout.addView(this.close.get());
-        this.mainLayout.addView(this.titleLayout, -1, 45 * DP);
+        this.mainLayout.addView(this.titleLayout, -1, 45 * dp);
 
         this.sideLayout = new LinearLayout_(CONTEXT);
         this.sideLayout.setOrientation(1);
+        this.sideLayout.setGravity(Gravity_.CENTER);
+        this.sideLayout.setLayoutParams(new Params_(45 * dp, HEIGHT - 45 * dp));
+        this.sideLayout.setBackgroundColor(Color_.rgb(30, 30, 30));
+        this.ml = new LinearLayout_(CONTEXT);
+        this.ml.setOrientation(0);
+        this.ml.addView(this.sideLayout);
+        this.contentView = null;
     }
 
     PopupWindow.prototype.setTitle = function(str) {
@@ -1155,7 +1210,7 @@
     };
 
     PopupWindow.prototype.setTitleColor = function(color) {
-        this.titleLayout.setBackgroundDrawable(new ColorDrawable(color));
+        this.titleLayout.setBackgroundColor(color);
         return this;
     };
 
@@ -1171,26 +1226,44 @@
 
     PopupWindow.prototype.setWidth = function(value) {
         this.WIDTH = value;
+        this.title.setLayoutParams(new Params_(value - 75 * dp, 45 * dp));
         return this;
     };
 
     PopupWindow.prototype.setHeight = function(value) {
         this.HEIGHT = value;
+        this.sideLayout.setLayoutParams(new Params_(45 * dp, value - 45 * dp));
         return this;
     };
 
     PopupWindow.prototype.setContentView = function(view) {
-        this.mainLayout.addView(view);
+        this.ml.addView(view);
+        this.contentView = view;
         return this;
     };
+    
+    PopupWindow.prototype.setTextColor = function(color) {
+        this.title.setTextColor(color);
+        this.menuBtn.setBackgroundDrawable(Drawable.setPadding(Drawable.MENU(color), 3 * dp, 3 * dp, 3 * dp, 3 * dp));
+        this.close.setBackgroundDrawable(Drawable.CLOSE(color));
+    };
+    
+    PopupWindow.prototype.removeAllView = function() {
+        this.ml.removeView(this.contentView);
+    };
 
-    PopupWindow.prototype.addMenu = function(name, func) {
-
+    PopupWindow.prototype.setMenuLayout = function(v) {
+        this.sideLayout.addView(v);
+    };
+    
+    PopupWindow.prototype.setMenuLayoutColor = function(color) {
+        this.sideLayout.setBackgroundColor(color);
     };
 
     PopupWindow.prototype.show = function() {
         var that = this;
         uiThread(function() {
+            that.mainLayout.addView(that.ml);
             that.window.setWidth(that.WIDTH);
             that.window.setHeight(that.HEIGHT);
             that.window.setContentView(that.mainLayout);
@@ -1770,7 +1843,9 @@
     var Data = {
         task: [],
         ban: [],
-        editablePlayer: []
+        editablePlayer: [],
+        titleColor: Color_.parseColor("#4CAF50"),
+        sideColor: Color_.parseColor("#43A047")
     };
 
     function Editor(name) {
@@ -2184,6 +2259,8 @@
         editButton,
         _window,
         __window,
+        main_window = null,
+        edit_window = null,
         editor;
 
     var pointer, _pointer; //월드 에딧 포인터
@@ -2191,21 +2268,91 @@
     var x, y, mx, my,
         moving = false,
         _moving = false;
+        
+    var side_layout = new LinearLayout_(CONTEXT);
+    side_layout.setGravity(Gravity_.CENTER);
+    side_layout.setOrientation(1);
+    side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //main_window.removeAllViews();
+        })
+        .get());
+    
+    side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.BORDER_COLOR(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //main_window.removeAllViews();
+        })
+        .get());
+    
+    side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.HELP(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //main_window.removeAllViews();
+            var layout = new LinearLayout_(CONTEXT);
+            layout.setOrientation(1);
+        })
+        .get());
+        
+    var edit_side_layout = new LinearLayout_(CONTEXT);
+    edit_side_layout.setOrientation(1);
+    edit_side_layout.setGravity(Gravity_.CENTER);
+    edit_side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //edit_window.removeAllViews();
+        })
+        .get());
+    
+    edit_side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //edit_window.removeAllViews();
+        })
+        .get());
+        
+    edit_side_layout.addView(new Button()
+        .setText("")
+        .setWH(45 * dp, 45 * dp)
+        .setEffectColor(Color_.argb(0, 0, 0, 0))
+        .setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+        .setEvent(function(v) {
+            //edit_window.removeAllViews();
+        })
+        .get());
+
+
 
 
     function makeEditButton() {
         uiThread(function() {
             var gradient = new GradientDrawable_();
-            gradient.setCornerRadius(900 * DP);
+            gradient.setCornerRadius(900 * dp);
             gradient.setColor(Color.RED);
-            gradient.setStroke(3 * DP, Color.RED_ACCENT);
+            gradient.setStroke(3 * dp, Color.RED_ACCENT);
             var layer = new LayerDrawable_([gradient, Drawable.EDIT(Color.WHITE)]);
-            layer.setLayerInset(1, 10 * DP, 10 * DP, 10 * DP, 10 * DP);
+            layer.setLayerInset(1, 10 * dp, 10 * dp, 10 * dp, 10 * dp);
 
             editButton = new Button_(CONTEXT);
             editButton.setText("");
             editButton.setBackgroundDrawable(layer);
-            editButton.setLayoutParams(new Params_(45 * DP, 45 * DP));
+            editButton.setLayoutParams(new Params_(45 * dp, 45 * dp));
             editButton.setOnTouchListener(new OnTouchListener_() {
                 onTouch: function(view, event) {
                     if (event.getAction() == MotionEvent_.ACTION_DOWN) {
@@ -2219,15 +2366,28 @@
                             return false;
                         }
 
-                        __window.update(WIDTH - _x - 20 * DP, HEIGHT - _y - 20 * DP, 45 * DP, 45 * DP);
+                        __window.update(WIDTH - _x - 20 * dp, HEIGHT - _y - 20 * dp, 45 * dp, 45 * dp);
                         _moving = true;
                     } else if (event.getAction() == MotionEvent_.ACTION_UP) {
                         if (_moving) {
-                            return true;
                             _moving = false;
+                            return true;
                         }
-                        if (!_moving && event.getX() >= 0 && event.getX() <= 45 * DP && event.getY() >= 0 && event.getY() <= 45 * DP) {
-
+                        if (!_moving && event.getX() >= 0 && event.getX() <= 45 * dp && event.getY() >= 0 && event.getY() <= 45 * dp) {
+                            if(edit_window == null) {
+                                edit_window = new PopupWindow();
+                                edit_window.setTitle("Terrain Edit Window");
+                                edit_window.setOnDismissListener(function() {
+                                    edit_window = null;
+                                });
+                                edit_window.setMenuLayout(edit_side_layout);
+                                edit_window.setTextColor(Color_.BLACK);
+                                edit_window.setTitleColor(Data.titleColor);
+                                edit_window.setMenuLayoutColor(Data.sideColor);
+                                edit_window.setWidth(450 * dp);
+                                edit_window.setHeight(300 * dp);
+                                edit_window.show();
+                            }
                         }
                     }
                     return false;
@@ -2240,7 +2400,7 @@
             __window.setContentView(__layout);
             __window.setWidth(-2);
             __window.setHeight(-2);
-            __window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.BOTTOM | Gravity_.RIGHT, 0, 50 * DP);
+            __window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.BOTTOM | Gravity_.RIGHT, 0, 50 * dp);
         });
     }
 
@@ -2258,16 +2418,16 @@
         //메인 버튼 생성
         uiThread(function() {
             var gradient = new GradientDrawable_();
-            gradient.setCornerRadius(900 * DP);
+            gradient.setCornerRadius(900 * dp);
             gradient.setColor(Color_.rgb(90, 110, 255));
-            gradient.setStroke(3 * DP, Color_.rgb(70, 90, 255));
+            gradient.setStroke(3 * dp, Color_.rgb(70, 90, 255));
             var layer = new LayerDrawable_([gradient, Drawable.MENU(Color.WHITE)]);
-            layer.setLayerInset(1, 13 * DP, 10 * DP, 13 * DP, 10 * DP);
+            layer.setLayerInset(1, 13 * dp, 10 * dp, 13 * dp, 10 * dp);
 
             fButton = new Button_(CONTEXT);
             fButton.setText("");
             fButton.setBackgroundDrawable(layer);
-            fButton.setLayoutParams(new Params_(45 * DP, 45 * DP));
+            fButton.setLayoutParams(new Params_(45 * dp, 45 * dp));
             fButton.setOnTouchListener(new OnTouchListener_() {
                 onTouch: function(view, event) {
                     if (event.getAction() == MotionEvent_.ACTION_DOWN) {
@@ -2281,14 +2441,31 @@
                             return false;
                         }
 
-                        _window.update(WIDTH - _x - 20 * DP, HEIGHT - _y - 20 * DP, 45 * DP, 45 * DP);
+                        _window.update(WIDTH - _x - 20 * dp, HEIGHT - _y - 20 * dp, 45 * dp, 45 * dp);
                         moving = true;
                     } else if (event.getAction() == MotionEvent_.ACTION_UP) {
                         if (moving) {
+                            moving = false;
                             return true;
                         }
-                        if (!moving && event.getX() >= 0 && event.getX() <= 45 * DP && event.getY() >= 0 && event.getY() <= 45 * DP) {
-
+                        if (!moving && event.getX() >= 0 && event.getX() <= 45 * dp && event.getY() >= 0 && event.getY() <= 45 * dp) {
+                            if(main_window == null) { try {
+                                main_window = new PopupWindow();
+                                main_window.setTitle("ModPE World Editor - v1.0");
+                                main_window.setOnDismissListener(function() {
+                                    main_window = null;
+                                });
+                                main_window.setMenuLayout(side_layout);
+                                main_window.setTextColor(Color_.BLACK);
+                                main_window.setTitleColor(Data.titleColor);
+                                main_window.setMenuLayoutColor(Data.sideColor);
+                                main_window.setWidth(450 * dp);
+                                main_window.setHeight(300 * dp);
+                                main_window.show();
+                                }catch(err) {
+                                    error(err);
+                                }
+                            }
                         }
                     }
                     return false;
