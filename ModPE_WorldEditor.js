@@ -13,6 +13,7 @@
         View_ = android.view.View,
         OnCheckedChangeListener_ = android.widget.CompoundButton.OnCheckedChangeListener,
         OnTouchListener_ = View_.OnTouchListener,
+        OnDismissListener_ = android.widget.PopupWindow.OnDismissListener,
         MotionEvent_ = android.view.MotionEvent,
         Gravity_ = android.view.Gravity,
         LinearLayout_ = android.widget.LinearLayout,
@@ -1155,6 +1156,11 @@
         this.window.setFocusable(true);
         this.mainLayout.setOrientation(1);
         this.titleLayout.setOrientation(0);
+        this.window.setOnDismissListener(new OnDismissListener_() {
+            onDismiss: function() {
+                that.dismissListener();
+            }
+        });
 
         this.mainLayout.setGravity(Gravity_.TOP | Gravity_.CENTER);
         this.titleLayout.setGravity(Gravity_.LEFT | Gravity_.CENTER);
@@ -1590,7 +1596,22 @@
 
     function toast(text, duration) {
         uiThread(function() {
-            Toast_.makeText(CONTEXT, text, (duration == null ? Toast_.LENGTH_SHORT : duration)).show();
+            var layout = new LinearLayout_(CONTEXT),
+                textView = new TextView_(CONTEXT),
+                _toast = new Toast_(CONTEXT),
+                gradient = new GradientDrawable_();
+                
+            gradient.setColor(Color_.parseColor("#80000000"));
+            gradient.setCornerRadius(3 * dp);
+            textView.setText(text);
+            textView.setTextColor(Color_.WHITE);
+            textView.setTextSize(18);
+            textView.setPadding(10 * dp, 5 * dp, 10 * dp, 5 * dp);
+            textView.setBackgroundDrawable(gradient);
+            
+            _toast.setView(textView);
+            _toast.setDuration((duration == null? Toast_.LENGTH_SHORT:duration));
+            _toast.show();
         });
     }
 
@@ -1869,7 +1890,50 @@
         
         return BitmapDrawable(Bitmap.createScaledBitmap(Bitmap.createBitmap(img, x, y, width, height), 32, 32, false));*/
     }
-
+    
+    
+    
+    function System() {}
+    
+    System.getAllEntity = function() {
+        return bl.Entity.getAll().filter(function(element) {
+            return !bl.Player.isPlayer(element);
+        });
+    };
+    
+    System.getAllPlayer = function() {
+        return bl.Entity.getAll().filter(function(element) {
+            return bl.Player.isPlayer(element);
+        });
+    };
+    
+    System.getPlayerByName = function(name) {
+        var players = System.getAllPlayers();
+        for(var i = 0; i < players.length; i++) {
+            if(Player.getName(players[i]) == name) {
+                return players[i];
+            }
+        }
+        return null;
+    };
+    
+    System.isBannedPlayer = function(player) {
+        for(var i = 0, len = Data.ban.length; i < len; i++) {
+            if(Data.ban[i] == player) {
+                return true;
+            }
+        }
+        return false;
+    };
+    
+    System.isEditablePlayer = function(player) {
+        for(var i = 0, len = Data.editablePlayer.length; i < len; i++) {
+            if(Data.editablePlayer[i] == player) {
+                return true;
+            }
+        }
+        return false;
+    };
 
 
 
@@ -1961,6 +2025,12 @@
         var thiz = this;
         if (this._paste) { //붙여넣기 작업이 진행중이면
             toast("붙여넣기 모드가 활성화 되어있습니다.\n붙여넣기 작업을 먼저 마친 후에 시도하세요.");
+            return;
+        }
+        
+        if(this._editable) {
+            toast("이미 다른 작업이 진행중입니다!\n작업이 끝난 후에 시도하세요.");
+            return;
         }
 
         this._savedBlock[this._taskCount] = [];
@@ -2368,52 +2438,27 @@
         moving = false,
         _moving = false;
         
+    var taskWindow = null,
+        progressBar = null,
+        textView = null,
+        task_progress = [],
+        task_max = [];
         
         
         
-    function TaskState() {
-        this.window = new PopupWindow();
-        this.progressBar = new ProgressBar_(CONTEXT, null, R.attr.progressBarStyleHorizontal);
-        this.max = 0;
-        this.textView = new TextView_(CONTEXT);
+        
+    function showTaskState() {
+        taskWindow = new PopupWindow_();
+        progressBar = new ProgressBar_(CONTEXT, null, R.attr.progressBarStyleHorizontal);
+        textView = new TextView_(CONTEXT);
+        
+        taskWindow.setBackgroundColor(Color_.parseColor("#80000000"));
+        taskWindow.setWidth(200 * dp);
+        taskWindow.setHeight(70 * dp);
     }
+
     
-    TaskState.prototype.setTask = function(task) {
-        
-    };
     
-    TaskState.prototype.setMax = function(value) {
-        this.max = value;
-        var thiz = this;
-        uiThread(function() {
-            thiz.progressBar.setMax(value);
-        });
-        return this;
-    };
-    
-    TaskState.prototype.setProgress = function(value) {
-        var thiz = this;
-        uiThread(function() {
-            thiz.progressBar.setProgress(value);
-        });
-        return this;
-    };
-    
-    TaskState.prototype.show = function() {
-        uiThread(function() {
-            
-        });
-    };
-    
-    TaskState.prototype.destroy = function() {
-        uiThread(function() {
-            
-        });
-    };
-        
-        
-        
-        
     function setEditData(task) {
         uiThread(function() {
             var window = new PopupWindow(),
@@ -2438,18 +2483,32 @@
             
             var main = new LinearLayout_(CONTEXT);
             main.setOrientation(1);
+            main.setGravity(Gravity_.CENTER);
             switch(task) {
                 case EditTypes.terrain.FILL:
                     var click = false;
                     window.setTitle("Terrain Edit - FILL");
-                    var editText = [], text = ["블럭 아이디를 입력하세요.", "블럭 데이터(데미지)를 입력하세요."];
+                    var editText = [], text = [["블럭 아이디: ", "블럭 아이디를 입력하세요."], ["블럭 데이터: ", "블럭 데이터(데미지)를 입력하세요."]];
                     for(var i = 0; i < 2; i++) {
+                        var editLayout = new LinearLayout_(CONTEXT);
+                        editLayout.setOrientation(0);
+                        editLayout.setGravity(Gravity_.LEFT|Gravity_.CENTER);
+                        
+                        var textView = new TextView_(CONTEXT);
+                        textView.setText(text[i][0]);
+                        textView.setTextColor(Color_.BLACK);
+                        textView.setTextSize(18);
+                        textView.setGravity(Gravity_.CENTER);
+                        textView.setLayoutParams(new Params_(100 * dp, 45 * dp));
+                        editLayout.addView(textView);
+                        
                         editText[i] = new EditText_(CONTEXT);
-                        editText[i].setHint(text[i]);
+                        editText[i].setHint(text[i][1]);
                         editText[i].setHintTextColor(Color_.GRAY);
-                        editText[i].setLayoutParams(new Params_(250 * dp, 45 * dp));
+                        editText[i].setLayoutParams(new Params_(200 * dp, 45 * dp));
                         editText[i].setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);
-                        main.addView(editText[i]);
+                        editLayout.addView(editText[i]);
+                        main.addView(editLayout);
                     }
                     
                     var linear = new LinearLayout_(CONTEXT);
@@ -2478,12 +2537,12 @@
                         })
                         .get());
                     main.addView(new Space().setWH(1, 20* dp).get());
-                    main.addView(linear, 250 * dp, -2);
+                    main.addView(linear, 300 * dp, -2);
                     break;
             }
             
             window.setContentView(main);
-            window.setWidth(300 * dp);
+            window.setWidth(350 * dp);
             window.setHeight(300 * dp);
             window.show();
         });
@@ -2560,7 +2619,7 @@
             main_layout.setPadding(0, 0, 0, 3 * dp);
             main_layout.addView(new Item()
                 .setText("undo 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2572,7 +2631,7 @@
 
             main_layout.addView(new Item()
                 .setText("redo 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2584,7 +2643,7 @@
 
             main_layout.addView(new Item()
                 .setText("채우기 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
                     setEditData(EditTypes.terrain.FILL);
                 })
@@ -2596,7 +2655,7 @@
 
             main_layout.addView(new Item()
                 .setText("바꾸기 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2608,7 +2667,7 @@
 
             main_layout.addView(new Item()
                 .setText("덮기 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2620,7 +2679,7 @@
 
             main_layout.addView(new Item()
                 .setText("벽 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2632,7 +2691,7 @@
 
             main_layout.addView(new Item()
                 .setText("복사 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2644,7 +2703,7 @@
 
             main_layout.addView(new Item()
                 .setText("붙어넣기 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2656,7 +2715,7 @@
 
             main_layout.addView(new Item()
                 .setText("원 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2668,7 +2727,7 @@
 
             main_layout.addView(new Item()
                 .setText("구 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2680,7 +2739,7 @@
 
             main_layout.addView(new Item()
                 .setText("원기둥 작업 실행")
-                .setWH(250 * dp, 45 * dp)
+                .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
@@ -2703,7 +2762,7 @@
             edit_window.setTextColor(Color_.BLACK);
             edit_window.setTitleColor(Data.titleColor);
             edit_window.setMenuLayoutColor(Data.sideColor);
-            edit_window.setWidth(300 * dp);
+            edit_window.setWidth(350 * dp);
             edit_window.setHeight(300 * dp);
             edit_window.show();
         });
