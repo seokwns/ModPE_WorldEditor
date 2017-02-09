@@ -8,6 +8,7 @@
         ToggleButton_ = android.widget.ToggleButton,
         ProgressBar_ = android.widget.ProgressBar,
         PopupWindow_ = android.widget.PopupWindow,
+        EditText_ = android.widget.EditText,
         Toast_ = android.widget.Toast,
         View_ = android.view.View,
         OnCheckedChangeListener_ = android.widget.CompoundButton.OnCheckedChangeListener,
@@ -1151,6 +1152,7 @@
         this.HEIGHT = HEIGHT;
         var that = this;
 
+        this.window.setFocusable(true);
         this.mainLayout.setOrientation(1);
         this.titleLayout.setOrientation(0);
 
@@ -1910,19 +1912,21 @@
         CUBE: 0,
         CIRCLE: 1,
         SPHERE: 2,
-        CYLINDER: 3
+        CYLINDER: 3,
+        ROTATE: 4,
+        FLIP: 5
     };
     Object.freeze(RenderTypes);
 
     var Data = {
-        task: [],
-        ban: [],
-        editablePlayer: [],
-        titleColor: Color_.parseColor("#4CAF50"),
-        sideColor: Color_.parseColor("#43A047"),
-        buttonColor: Color_.parseColor("#CDDC39"),
-        buttonEffectColor: Color_.parseColor("#C0CA33"),
-        speed: 5
+        task: [], //지형 및 서버 작업 내용을 담을 배열
+        ban: [], //밴 리스트
+        editablePlayer: [], //지형 및 서버수정을 할 수 있는 플레이어 목록
+        titleColor: Color_.parseColor("#4CAF50"), //윈도우의 타이틀 색깔
+        sideColor: Color_.parseColor("#43A047"), //윈도우의 메뉴 색깔
+        buttonColor: Color_.parseColor("#E0E0E0"),//Color_.parseColor("#CDDC39"), //윈도우 안 Item의 버튼 색깔
+        buttonEffectColor: Color_.parseColor("#BDBDBD"),//parseColor("#C0CA33"), //윈도우 Item의 버튼 이펙트 색깔
+        speed: 5 //지형 스캔 및 지형 수정 속도
     };
 
     function Editor(name) {
@@ -2101,11 +2105,6 @@
 
     Editor.prototype.request = function(type, task, data) {
         if (type === EditTypes.terrain.TYPE) { //지형 작업 요청
-            if (this._paste) { //붙여넣기 작업이 진행중인 경우
-                toast("붙여넣기 모드가 활성화 되어있습니다.\n붙여넣기 작업을 먼저 마친 후에 시도하세요.");
-                return;
-            }
-
             const thiz = this;
             this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
             switch (task) {
@@ -2123,7 +2122,7 @@
                                     Data.task.push({ //작업 리스트에 추가
                                         type: EditTypes.terrain.FILL,
                                         count: thiz._editCount,
-                                        content: "id: " + data[0] + ", data: " + data[1] + "로 채우기"
+                                        content: "id: " + data[0] + ", data: " + data[1] + "으로 채우기"
                                     });
                                     thiz._taskCount++; //작업한 수 증가
                                     thiz._editCount = 0; //작업한 블록 수 초기화
@@ -2368,6 +2367,127 @@
     var x, y, mx, my,
         moving = false,
         _moving = false;
+        
+        
+        
+        
+    function TaskState() {
+        this.window = new PopupWindow();
+        this.progressBar = new ProgressBar_(CONTEXT, null, R.attr.progressBarStyleHorizontal);
+        this.max = 0;
+        this.textView = new TextView_(CONTEXT);
+    }
+    
+    TaskState.prototype.setTask = function(task) {
+        
+    };
+    
+    TaskState.prototype.setMax = function(value) {
+        this.max = value;
+        var thiz = this;
+        uiThread(function() {
+            thiz.progressBar.setMax(value);
+        });
+        return this;
+    };
+    
+    TaskState.prototype.setProgress = function(value) {
+        var thiz = this;
+        uiThread(function() {
+            thiz.progressBar.setProgress(value);
+        });
+        return this;
+    };
+    
+    TaskState.prototype.show = function() {
+        uiThread(function() {
+            
+        });
+    };
+    
+    TaskState.prototype.destroy = function() {
+        uiThread(function() {
+            
+        });
+    };
+        
+        
+        
+        
+    function setEditData(task) {
+        uiThread(function() {
+            var window = new PopupWindow(),
+                side_layout = new LinearLayout_(CONTEXT),
+                edit = new Button();
+                
+            window.setTitleColor(Color_.parseColor("#3F51B5"));
+            window.setMenuLayoutColor(Color_.parseColor("#3949AB"));
+            window.setTextColor(Color_.WHITE);
+            side_layout.setGravity(Gravity_.CENTER);
+            
+            edit.setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]))
+                .setEvent(function(v) {
+                    
+                });
+            side_layout.addView(edit.get());
+            window.setMenuLayout(side_layout);
+            
+            var main = new LinearLayout_(CONTEXT);
+            main.setOrientation(1);
+            switch(task) {
+                case EditTypes.terrain.FILL:
+                    var click = false;
+                    window.setTitle("Terrain Edit - FILL");
+                    var editText = [], text = ["블럭 아이디를 입력하세요.", "블럭 데이터(데미지)를 입력하세요."];
+                    for(var i = 0; i < 2; i++) {
+                        editText[i] = new EditText_(CONTEXT);
+                        editText[i].setHint(text[i]);
+                        editText[i].setHintTextColor(Color_.GRAY);
+                        editText[i].setLayoutParams(new Params_(250 * dp, 45 * dp));
+                        editText[i].setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+                        main.addView(editText[i]);
+                    }
+                    
+                    var linear = new LinearLayout_(CONTEXT);
+                    linear.setOrientation(0);
+                    linear.setGravity(Gravity_.CENTER);
+                    
+                    linear.addView(new Button()
+                        .setText("블럭 찾기")
+                        .setWH(100 * dp, 35 * dp)
+                        .setEffectColor(Color_.argb(140, 140, 140, 140))
+                        .setEvent(function(v) {
+                            if(!click) {
+                                var _linear = new LinearLayout_(CONTEXT);
+                                _linear.setOrientation(0);
+                                _linear.setGravity(Gravity_.CENTER);
+                            }
+                        })
+                        .get());
+                    linear.addView(new Space().setWH(5 * dp, 0).get());
+                    linear.addView(new Button()
+                        .setText("작업 시작")
+                        .setWH(100 * dp, 35 * dp)
+                        .setEffectColor(Color_.argb(140, 140, 140, 140))
+                        .setEvent(function(v) {
+                            editor.render(pointer, _pointer, RenderTypes.CUBE, EditTypes.terrain.FILL, [parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                        })
+                        .get());
+                    main.addView(new Space().setWH(1, 20* dp).get());
+                    main.addView(linear, 250 * dp, -2);
+                    break;
+            }
+            
+            window.setContentView(main);
+            window.setWidth(300 * dp);
+            window.setHeight(300 * dp);
+            window.show();
+        });
+    }
 
 
 
@@ -2440,11 +2560,11 @@
             main_layout.setPadding(0, 0, 0, 3 * dp);
             main_layout.addView(new Item()
                 .setText("undo 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("undo")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2452,11 +2572,11 @@
 
             main_layout.addView(new Item()
                 .setText("redo 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("redo")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2464,11 +2584,11 @@
 
             main_layout.addView(new Item()
                 .setText("채우기 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
-                    editor.render(pointer, _pointer, RenderTypes.CUBE, EditTypes.terrain.FILL, [1, 0]);
+                    setEditData(EditTypes.terrain.FILL);
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2476,11 +2596,11 @@
 
             main_layout.addView(new Item()
                 .setText("바꾸기 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2488,11 +2608,11 @@
 
             main_layout.addView(new Item()
                 .setText("덮기 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2500,11 +2620,11 @@
 
             main_layout.addView(new Item()
                 .setText("벽 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2512,11 +2632,11 @@
 
             main_layout.addView(new Item()
                 .setText("복사 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("copy")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2524,11 +2644,11 @@
 
             main_layout.addView(new Item()
                 .setText("붙어넣기 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("paste")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2536,11 +2656,11 @@
 
             main_layout.addView(new Item()
                 .setText("원 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2548,11 +2668,11 @@
 
             main_layout.addView(new Item()
                 .setText("구 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2560,11 +2680,11 @@
 
             main_layout.addView(new Item()
                 .setText("원기둥 작업 실행")
-                .setWH(397 * dp, 45 * dp)
+                .setWH(250 * dp, 45 * dp)
                 .setEvent(function() {
 
                 })
-                .setButtonWH(100 * dp, 35 * dp)
+                .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
@@ -2583,7 +2703,7 @@
             edit_window.setTextColor(Color_.BLACK);
             edit_window.setTitleColor(Data.titleColor);
             edit_window.setMenuLayoutColor(Data.sideColor);
-            edit_window.setWidth(450 * dp);
+            edit_window.setWidth(300 * dp);
             edit_window.setHeight(300 * dp);
             edit_window.show();
         });
