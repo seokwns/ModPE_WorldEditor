@@ -978,17 +978,17 @@
 
     CheckBox.prototype.get = function() {
         var thiz = this;
-        this._view.setBackgroundDrawable(es.astin.graphics.drawable.CHECKBOX_OFF(this._color));
+        this._view.setBackgroundDrawable(Drawable.CHECKBOX_OFF(this._color));
         this._view.setLayoutParams(new Params_(30 * dp, 30 * dp));
         this._view.setOnCheckedChangeListener(new OnCheckedChangeListener_({
             onCheckedChanged: (toggle, isChecked) => {
                 if (isChecked) {
-                    toggle.setBackgroundDrawable(es.astin.graphics.drawable.CHECKBOX_ON(thiz._color));
+                    toggle.setBackgroundDrawable(Drawable.CHECKBOX_ON(thiz._color));
                     thiz._listener(toggle, isChecked);
                 }
 
                 if (!isChecked) {
-                    toggle.setBackgroundDrawable(es.astin.graphics.drawable.CHECKBOX_OFF(thiz._color));
+                    toggle.setBackgroundDrawable(Drawable.CHECKBOX_OFF(thiz._color));
                     thiz._listener(toggle, isChecked);
                 }
             }
@@ -1078,17 +1078,17 @@
 
     RadioButton.prototype.get = function() {
         var thiz = this;
-        this._view.setBackgroundDrawable(es.astin.graphics.drawable.RADIO_OFF(this._color));
+        this._view.setBackgroundDrawable(Drawable.RADIO_OFF(this._color));
         this._view.setLayoutParams(new Params_(30 * dp, 30 * dp));
         this._view.setOnCheckedChangeListener(new OnCheckedChangeListener_({
             onCheckedChanged: (toggle, isChecked) => {
                 if (isChecked) {
-                    toggle.setBackgroundDrawable(es.astin.graphics.drawable.RADIO_ON(thiz._color));
+                    toggle.setBackgroundDrawable(Drawable.RADIO_ON(thiz._color));
                     thiz._listener(toggle, isChecked);
                 }
 
                 if (!isChecked) {
-                    toggle.setBackgroundDrawable(es.astin.graphics.drawable.RADIO_OFF(thiz._color));
+                    toggle.setBackgroundDrawable(Drawable.RADIO_OFF(thiz._color));
                     thiz._listener(toggle, isChecked);
                 }
             }
@@ -2104,7 +2104,7 @@
                     
                 uiThread(function() {
                     progressBar.setMax(task_length);
-                    taskText.setText("지형 스켄중...");
+                    taskText.setText("지형 스캔중...");
                 });
                 new Thread_({
                     run() {
@@ -2143,7 +2143,7 @@
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
                     progressBar.setMax(task_length);
-                    taskText.setText("지형 스켄중...");
+                    taskText.setText("지형 스캔중...");
                 });
                 new Thread_({
                     run() {
@@ -2189,7 +2189,7 @@
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
                     progressBar.setMax(task_length);
-                    taskText.setText("지형 스켄중...");
+                    taskText.setText("지형 스캔중...");
                 });
                 new Thread_({
                     run() {
@@ -2208,7 +2208,7 @@
                                         thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     }
                                     uiThread(function() {
-                                        progressBar.setMax(thiz.__editCount),
+                                        progressBar.setMax(thiz.__editCount);
                                     });
                                     Thread_.sleep(Data.speed);
                                 }
@@ -2236,7 +2236,7 @@
                 var task_length = ((Math.pow(((2 * radius) - 1), 2)) * height)
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
-                    taskText.setText("지형 스켄중...");
+                    taskText.setText("지형 스캔중...");
                     progressBar.setMax(task_length);
                 });
                 new Thread_({
@@ -2310,7 +2310,7 @@
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
                                         progressBar.setProgress(0);
-                                        progressBar.seMax(0);
+                                        progressBar.setMax(0);
                                     });
                                 }
                             }
@@ -2344,7 +2344,7 @@
                                         uiThread(function() {
                                             taskText.setText("작업 중이 아닙니다.");
                                             progressBar.setProgress(0);
-                                            progressBar.seMax(0);
+                                            progressBar.setMax(0);
                                         });
                                     }
                                 }
@@ -2391,7 +2391,7 @@
                                         uiThread(function() {
                                             taskText.setText("작업 중이 아닙니다.");
                                             progressBar.setProgress(0);
-                                            progressBar.seMax(0);
+                                            progressBar.setMax(0);
                                         });
                                     }
                                 }
@@ -2434,7 +2434,7 @@
                                         uiThread(function() {
                                             taskText.setText("작업 중이 아닙니다.");
                                             progressBar.setProgress(0);
-                                            progressBar.seMax(0);
+                                            progressBar.setMax(0);
                                         });
                                     }
                                     Thread_.sleep(Data.speed);
@@ -2471,7 +2471,7 @@
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
                                         progressBar.setProgress(0);
-                                        progressBar.seMax(0);
+                                        progressBar.setMax(0);
                                     });
                                 }
                             }
@@ -2506,7 +2506,7 @@
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
                                         progressBar.setProgress(0);
-                                        progressBar.seMax(0);
+                                        progressBar.setMax(0);
                                     });
                                 }
                             }
@@ -2542,7 +2542,7 @@
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
                                         progressBar.setProgress(0);
-                                        progressBar.seMax(0);
+                                        progressBar.setMax(0);
                                     });
                                 }
                             }
@@ -2736,6 +2736,7 @@
                 case EditTypes.terrain.CIRCLE_HOLLOW:
                 case EditTypes.terrain.SPHERE:
                 case EditTypes.terrain.SPHERE_HOLLOW:
+                    var hollow = false;
                     window.setTitle("Terrain Edit - " + EditTypes.dump(EditTypes.terrain)[task + 1]);
                     var editText = [], text = [["블럭 아이디 : ", "블럭 아이디를 입력하세요."], ["블럭 데이터 : ", "블럭 데이터(데미지)를 입력하세요."], ["반지름 : ", "반지름을 입력하세요."]];
                     for(var i = 0; i < 2; i++) {
@@ -2760,6 +2761,16 @@
                         main.addView(editLayout);
                     }
                     
+                    var checkBox = new CheckBox();
+                    checkBox.setText("속 비우기");
+                    checkBox.setColor(Color_.BLACK);
+                    checkBox.setParams(300 * dp, 45 * dp);
+                    checkBox.setChecked(false);
+                    checkBox.setOnCheckedChangeListener(function(box, checked) {
+                        hollow = checked;
+                    });
+                    main.addView(checkBox);
+                    
                     var linear = new LinearLayout_(CONTEXT);
                     linear.setOrientation(0);
                     linear.setGravity(Gravity_.CENTER);
@@ -2782,7 +2793,7 @@
                         .setWH(100 * dp, 35 * dp)
                         .setEffectColor(Color_.argb(140, 140, 140, 140))
                         .setEvent(function(v) {
-                            editor.render(pointer, _pointer, RenderTypes.CUBE, task, [parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                            editor.render(pointer, _pointer, RenderTypes.CIRCLE, task, [parseInt(editText[2].getText().toString()), hollow, parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
                         })
                         .get());
                     main.addView(new Space().setWH(1, 20* dp).get());
