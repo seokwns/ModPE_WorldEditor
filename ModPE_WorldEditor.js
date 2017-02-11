@@ -1286,6 +1286,16 @@
             that.window.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.CENTER, 0, 0);
         });
     };
+    
+    PopupWindow.prototype.dismiss = function() {
+        var thiz = this;
+        uiThread(function() {
+            if(thiz.window != null) {
+                thiz.window.dismiss();
+                thiz.window = null;
+            }
+        });
+    }
 
 
 
@@ -1308,7 +1318,7 @@
         this._textView.setTextColor(Color_.BLACK);
         this._textView.setTextSize(16);
         this._textView.setGravity(Gravity_.LEFT | Gravity_.CENTER);
-        this._textView.setPadding(10 * dp, 0, 0, 0);
+        this._textView.setPadding(15 * dp, 0, 0, 0);
         this._button.setTextColor(Color_.BLACK);
     }
 
@@ -1605,6 +1615,7 @@
             gradient.setCornerRadius(3 * dp);
             textView.setText(text);
             textView.setTextColor(Color_.WHITE);
+            textView.setGravity(Gravity_.CENTER);
             textView.setTextSize(18);
             textView.setPadding(10 * dp, 5 * dp, 10 * dp, 5 * dp);
             textView.setBackgroundDrawable(gradient);
@@ -1910,7 +1921,7 @@
     System.getPlayerByName = function(name) {
         var players = System.getAllPlayers();
         for(var i = 0; i < players.length; i++) {
-            if(Player.getName(players[i]) == name) {
+            if(bl.Player.getName(players[i]) == name) {
                 return players[i];
             }
         }
@@ -1968,9 +1979,55 @@
             SPAWN: 6,
             EFFECT: 7,
             OBSERVE: 8
+        },
+        dump: function(target) { //provided by astro
+            var arr = [];
+            function getProperty(obj) {
+                for (var objKey in obj) {
+                    if(obj.hasOwnProperty(objKey)) {
+                        arr.push(objKey);
+                    }
+                }
+            }
+            getProperty(target);
+            return arr;
         }
     };
     Object.freeze(EditTypes);
+    
+    const string = {
+        terrain: {
+            FILL: ["채우기", "fill"],
+            CHANGE: ["바꾸기", "change"],
+            COPY: ["복사", "copy"],
+            PASTE: ["붙어넣기", "paste"],
+            COVER: ["덮기", "cober"],
+            WALL: ["벽 만들기", "wall"],
+            CIRCLE: ["원 만들기", "circle"],
+            CIRCLE_HOLLOW: ["빈 원 만들기", "hollow circle"],
+            SPHERE: ["구 만들기", "shpere"],
+            SPHERE_HOLLOW: ["빈 구 만들기", "hollow sphere"],
+            CYLINDER: ["원기둥 만들기", "cylinder"],
+            CYLINDER_HOLLOW: ["빈 원기둥 만들기", "hollow cylinder"],
+            ROTATE: ["회전", "rotate"],
+            FLIP: ["반전", "flip"],
+            UNDO: ["되돌리기", "undo"],
+            REDO: ["다시 하기", "redo"]
+        },
+        server: {
+            TYPE: "server_edit",
+            BAN: 0,
+            WHITE: 1,
+            GIVE: 2,
+            TLELPORT: 3,
+            TELEPORT_ALL: 4,
+            HEAL: 5,
+            SPAWN: 6,
+            EFFECT: 7,
+            OBSERVE: 8
+        }
+    };
+    Object.freeze(string);
 
     const RenderTypes = {
         CUBE: 0,
@@ -2042,7 +2099,13 @@
                     return;
                 }
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
-                var editVector = getEditVector(p1, p2);
+                var editVector = getEditVector(p1, p2),
+                    task_length = (editVector.dx * editVector.dy * editVector.dz);
+                    
+                uiThread(function() {
+                    progressBar.setMax(task_length);
+                    taskText.setText("지형 스켄중...");
+                });
                 new Thread_({
                     run() {
                         for (var dx = 0; dx < editVector.dx; dx++) { //x 변화량
@@ -2051,13 +2114,20 @@
                                     thiz._savedBlock[thiz._taskCount].push(new Block(editVector.start.getX() + dx, editVector.start.getY() + dy, editVector.start.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     thiz._editCount++; //스캔한 블록의 수
                                     Thread_.sleep(Data.speed);
+                                    uiThread(function() {
+                                        progressBar.setProgress(thiz._editCount);
+                                    });
                                 }
                             }
                         }
 
-                        if (thiz._editCount === editVector.dx * editVector.dy * editVector.dz) { //스캔한 블록의 수가 지정한 범위 안의 블록 수와 일치할 때
+                        if (thiz._editCount === task_length) { //스캔한 블록의 수가 지정한 범위 안의 블록 수와 일치할 때
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            uiThread(function() {
+                                progressBar.setProgress(0);
+                                taskText.setText("지형 수정 중...");
+                            });
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
@@ -2069,7 +2139,12 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
+                var task_length = Math.pow(((2 * radius) - 1), 2);
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
+                uiThread(function() {
+                    progressBar.setMax(task_length);
+                    taskText.setText("지형 스켄중...");
+                });
                 new Thread_({
                     run() {
                         var radius = data[0],
@@ -2085,13 +2160,20 @@
                                     thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     thiz._editCount++;
                                 }
+                                uiThread(function() {
+                                    progressBar.setProgress(thiz.__editCount);
+                                });
                                 Thread_.sleep(Data.speed);
                             }
                         }
 
-                        if (thiz.__editCount == Math.pow(((2 * radius) - 1), 2)) { //작업 완료시
+                        if (thiz.__editCount == task_length) { //작업 완료시
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            uiThread(function() {
+                                progressBar.setProgress(0);
+                                taskText.setText("지형 수정 중...");
+                            });
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
@@ -2103,7 +2185,12 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
+                var task_length = Math.pow(((2 * radius) - 1), 3);
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
+                uiThread(function() {
+                    progressBar.setMax(task_length);
+                    taskText.setText("지형 스켄중...");
+                });
                 new Thread_({
                     run() {
                         var radius = data[0],
@@ -2120,6 +2207,9 @@
                                         thiz._editCount++;
                                         thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     }
+                                    uiThread(function() {
+                                        progressBar.setMax(thiz.__editCount),
+                                    });
                                     Thread_.sleep(Data.speed);
                                 }
                             }
@@ -2128,6 +2218,10 @@
                         if (thiz.__editCount == Math.pow(((2 * radius) - 1), 3)) {
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            uiThread(function() {
+                                progressBar.setProgress(0);
+                                taskText.setText("지형 수정 중...");
+                            });
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
@@ -2139,7 +2233,12 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
+                var task_length = ((Math.pow(((2 * radius) - 1), 2)) * height)
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
+                uiThread(function() {
+                    taskText.setText("지형 스켄중...");
+                    progressBar.setMax(task_length);
+                });
                 new Thread_({
                     run() {
                         var radius = data[0],
@@ -2157,14 +2256,21 @@
                                         thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dh, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                         thiz._editCount++;
                                     }
+                                    uiThread(function() {
+                                        progressBar.setProgress(thiz.__editCount);
+                                    });
+                                    Thread_.sleep(Data.speed);
                                 }
-                                Thread_.sleep(Data.speed);
                             }
                         }
 
                         if (thiz.__editCount == ((Math.pow(((2 * radius) - 1), 2)) * height)) {
                             thiz._editable = true; //작업 준비 완료
                             toast("지형 탐색이 완료되었습니다.\n" + thiz._editCount + "개의 블록들이 수정될 준비를 마쳤습니다.");
+                            uiThread(function() {
+                                progressBar.setProgress(0);
+                                taskText.setText("지형 수정 중...");
+                            });
                             thiz.request(EditTypes.terrain.TYPE, task, data); //작업 요청
                         }
                     }
@@ -2186,6 +2292,9 @@
                                 var _block = new Block(block.getVector(), data[0], data[1]); //채워질 블록 정보
                                 _block.set(); //블록 설치
                                 thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
                                 Thread_.sleep(Data.speed);
 
                                 if (i == len - 1) {
@@ -2194,9 +2303,15 @@
                                         count: thiz._editCount,
                                         content: "id: " + data[0] + ", data: " + data[1] + "으로 채우기"
                                     });
+                                    toast(thiz._editCount + "개의 블록으로 채웠습니다.");
                                     thiz._taskCount++; //작업한 수 증가
                                     thiz._editCount = 0; //작업한 블록 수 초기화
                                     thiz._editable = false; //작업 종료
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.seMax(0);
+                                    });
                                 }
                             }
                         }
@@ -2212,6 +2327,9 @@
                                     var _block = new Block(block.getVector(), data[2], data[3]); //바뀐 후의 블록 정보
                                     _block.set(); //블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //설치한 블록을 수정한 지형 배열에 추가
+                                    uiThread(function() {
+                                        progressBar.setProgress(i + 1);
+                                    });
                                     Thread_.sleep(Data.speed);
 
                                     if (i == len - 1) {
@@ -2223,6 +2341,11 @@
                                         thiz._taskCount++; //작업한 수 증가
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
+                                        uiThread(function() {
+                                            taskText.setText("작업 중이 아닙니다.");
+                                            progressBar.setProgress(0);
+                                            progressBar.seMax(0);
+                                        });
                                     }
                                 }
                             }
@@ -2251,6 +2374,9 @@
                                     var _block = new Block(block.getX(), block.getY() + 1, block.getZ(), data[0], data[1]); //덮을 블록 정보
                                     _block.set(); //덮을 블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //덮은 블록을 수정한 지형 배열에 추가
+                                    uiThread(function() {
+                                        progressBar.setProgress(i + 1);
+                                    });
                                     Thread_.sleep(Data.speed);
 
                                     if (i == len - 1) {
@@ -2262,6 +2388,11 @@
                                         thiz._taskCount++; //작업한 수 증가
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
+                                        uiThread(function() {
+                                            taskText.setText("작업 중이 아닙니다.");
+                                            progressBar.setProgress(0);
+                                            progressBar.seMax(0);
+                                        });
                                     }
                                 }
                             }
@@ -2278,7 +2409,7 @@
                     }); //스캔한 블럭의 z좌표 값
 
                     var x = [Math.max.apply(null, array_map_x), Math.min.apply(null, array_map_x)], //x좌표 값의 최대, 최소
-                        z = [Math.max.apply(null, array_map_z), Math.min.apply(null, array_map_z)]; //z좌쵸 값의 최대, 최소
+                        z = [Math.max.apply(null, array_map_z), Math.min.apply(null, array_map_z)]; //z좌표 값의 최대, 최소
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2287,8 +2418,10 @@
                                     var _block = new Block(block.getVector(), data[0], data[1]); //벽 블록 정보
                                     _block.set(); //블록 설치
                                     thiz._editedBlock[thiz._taskCount].push(_block); //벽 블록 정보를 수정한 지형 배열에 추가
-                                    Thread_.sleep(Data.speed);
-
+                                    uiThread(function() {
+                                        progressBar.setProgress(i + 1);
+                                    });
+                                    
                                     if (i == len - 1) {
                                         Data.task.push({ //작업 리스트에 추가
                                             type: EditTypes.terrain.WALL,
@@ -2298,7 +2431,13 @@
                                         thiz._taskCount++; //작업한 수 증가
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
+                                        uiThread(function() {
+                                            taskText.setText("작업 중이 아닙니다.");
+                                            progressBar.setProgress(0);
+                                            progressBar.seMax(0);
+                                        });
                                     }
+                                    Thread_.sleep(Data.speed);
                                 }
                             }
                         }
@@ -2313,6 +2452,9 @@
                                     _block = new Block(block.getVector(), data[2], data[3]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
                                 Thread_.sleep(Data.speed);
 
                                 if (i == len - 1) {
@@ -2326,6 +2468,11 @@
                                     thiz._taskCount++; //작업한 수 증가
                                     thiz._editCount = 0; //작업한 블록 수 초기화
                                     thiz._editable = false; //작업 종료
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.seMax(0);
+                                    });
                                 }
                             }
                         }
@@ -2340,6 +2487,9 @@
                                     _block = new Block(block.getVector(), data[2], data[3]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
                                 Thread_.sleep(Data.speed);
 
                                 if (i == len - 1) {
@@ -2353,6 +2503,11 @@
                                     thiz._taskCount++; //작업한 수 증가
                                     thiz._editCount = 0; //작업한 블록 수 초기화
                                     thiz._editable = false; //작업 종료
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.seMax(0);
+                                    });
                                 }
                             }
                         }
@@ -2367,6 +2522,9 @@
                                     _block = new Block(block.getVector(), data[3], data[4]);
                                 _block.set();
                                 thiz._editedBlock[thiz._taskCount].push(_block);
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
                                 Thread_.sleep(Data.speed);
 
                                 if (i == len - 1) {
@@ -2381,6 +2539,11 @@
                                     thiz._taskCount++; //작업한 수 증가
                                     thiz._editCount = 0; //작업한 블록 수 초기화
                                     thiz._editable = false; //작업 종료
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.seMax(0);
+                                    });
                                 }
                             }
                         }
@@ -2440,21 +2603,48 @@
         
     var taskWindow = null,
         progressBar = null,
-        textView = null,
-        task_progress = [],
-        task_max = [];
+        taskText = null,
+        taskLayout = null;
         
         
         
         
     function showTaskState() {
-        taskWindow = new PopupWindow_();
-        progressBar = new ProgressBar_(CONTEXT, null, R.attr.progressBarStyleHorizontal);
-        textView = new TextView_(CONTEXT);
-        
-        taskWindow.setBackgroundColor(Color_.parseColor("#80000000"));
-        taskWindow.setWidth(200 * dp);
-        taskWindow.setHeight(70 * dp);
+        uiThread(function() {
+            taskLayout = new LinearLayout_(CONTEXT);
+            taskWindow = new PopupWindow_();
+            progressBar = new ProgressBar_(CONTEXT, null, R.attr.progressBarStyleHorizontal);
+            taskText = new TextView_(CONTEXT);
+            
+            taskLayout.setOrientation(1);
+            taskLayout.setGravity(Gravity_.CENTER);
+            taskWindow.setBackgroundDrawable(new ColorDrawable_(Color_.parseColor("#80000000")));
+            taskWindow.setWidth(150 * dp);
+            taskWindow.setHeight(45 * dp);
+            taskWindow.setOnDismissListener(new OnDismissListener_() {
+                onDismiss: function() {
+                    taskLayout.removeAllViews();
+                    taskLayout = null;
+                    progressBar = null;
+                    taskText = null;
+                    taskWindow = null;
+                }
+            });
+            
+            progressBar.getProgressDrawable().setColorFilter(Color_.parseColor("#4CAF50"), PorterDuff_.Mode.MULTIPLY);
+            progressBar.setLayoutParams(new Params_(130 * dp, 3 * dp));
+            progressBar.setMax(10);
+            progressBar.setProgress(0);
+            taskText.setText("작업 중이 아닙니다.");
+            taskText.setTextColor(Color_.YELLOW);
+            taskText.setGravity(Gravity_.CENTER);
+            taskText.setTextSize(15);
+            taskLayout.addView(taskText, 150 * dp, 40 * dp);
+            taskLayout.addView(progressBar);
+            
+            taskWindow.setContentView(taskLayout);
+            taskWindow.showAtLocation(CONTEXT.getWindow().getDecorView(), Gravity_.TOP|Gravity_.LEFT, 0, 0);
+        });
     }
 
     
@@ -2486,8 +2676,10 @@
             main.setGravity(Gravity_.CENTER);
             switch(task) {
                 case EditTypes.terrain.FILL:
+                case EditTypes.terrain.WALL:
+                case EditTypes.terrain.COVER:
                     var click = false;
-                    window.setTitle("Terrain Edit - FILL");
+                    window.setTitle("Terrain Edit - " + EditTypes.dump(EditTypes.terrain)[task + 1]);
                     var editText = [], text = [["블럭 아이디: ", "블럭 아이디를 입력하세요."], ["블럭 데이터: ", "블럭 데이터(데미지)를 입력하세요."]];
                     for(var i = 0; i < 2; i++) {
                         var editLayout = new LinearLayout_(CONTEXT);
@@ -2533,7 +2725,64 @@
                         .setWH(100 * dp, 35 * dp)
                         .setEffectColor(Color_.argb(140, 140, 140, 140))
                         .setEvent(function(v) {
-                            editor.render(pointer, _pointer, RenderTypes.CUBE, EditTypes.terrain.FILL, [parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                            editor.render(pointer, _pointer, RenderTypes.CUBE, task, [parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                        })
+                        .get());
+                    main.addView(new Space().setWH(1, 20* dp).get());
+                    main.addView(linear, 300 * dp, -2);
+                    break;
+                    
+                case EditTypes.terrain.CIRCLE:
+                case EditTypes.terrain.CIRCLE_HOLLOW:
+                case EditTypes.terrain.SPHERE:
+                case EditTypes.terrain.SPHERE_HOLLOW:
+                    window.setTitle("Terrain Edit - " + EditTypes.dump(EditTypes.terrain)[task + 1]);
+                    var editText = [], text = [["블럭 아이디 : ", "블럭 아이디를 입력하세요."], ["블럭 데이터 : ", "블럭 데이터(데미지)를 입력하세요."], ["반지름 : ", "반지름을 입력하세요."]];
+                    for(var i = 0; i < 2; i++) {
+                        var editLayout = new LinearLayout_(CONTEXT);
+                        editLayout.setOrientation(0);
+                        editLayout.setGravity(Gravity_.LEFT|Gravity_.CENTER);
+                        
+                        var textView = new TextView_(CONTEXT);
+                        textView.setText(text[i][0]);
+                        textView.setTextColor(Color_.BLACK);
+                        textView.setTextSize(18);
+                        textView.setGravity(Gravity_.CENTER);
+                        textView.setLayoutParams(new Params_(100 * dp, 45 * dp));
+                        editLayout.addView(textView);
+                        
+                        editText[i] = new EditText_(CONTEXT);
+                        editText[i].setHint(text[i][1]);
+                        editText[i].setHintTextColor(Color_.GRAY);
+                        editText[i].setLayoutParams(new Params_(200 * dp, 45 * dp));
+                        editText[i].setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);
+                        editLayout.addView(editText[i]);
+                        main.addView(editLayout);
+                    }
+                    
+                    var linear = new LinearLayout_(CONTEXT);
+                    linear.setOrientation(0);
+                    linear.setGravity(Gravity_.CENTER);
+                    
+                    linear.addView(new Button()
+                        .setText("블럭 찾기")
+                        .setWH(100 * dp, 35 * dp)
+                        .setEffectColor(Color_.argb(140, 140, 140, 140))
+                        .setEvent(function(v) {
+                            if(!click) {
+                                var _linear = new LinearLayout_(CONTEXT);
+                                _linear.setOrientation(0);
+                                _linear.setGravity(Gravity_.CENTER);
+                            }
+                        })
+                        .get());
+                    linear.addView(new Space().setWH(5 * dp, 0).get());
+                    linear.addView(new Button()
+                        .setText("작업 시작")
+                        .setWH(100 * dp, 35 * dp)
+                        .setEffectColor(Color_.argb(140, 140, 140, 140))
+                        .setEvent(function(v) {
+                            editor.render(pointer, _pointer, RenderTypes.CUBE, task, [parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
                         })
                         .get());
                     main.addView(new Space().setWH(1, 20* dp).get());
@@ -2618,7 +2867,7 @@
             main_layout.setOrientation(1);
             main_layout.setPadding(0, 0, 0, 3 * dp);
             main_layout.addView(new Item()
-                .setText("undo 작업 실행")
+                .setText("undo")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2630,7 +2879,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("redo 작업 실행")
+                .setText("redo")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2642,7 +2891,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("채우기 작업 실행")
+                .setText("채우기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
                     setEditData(EditTypes.terrain.FILL);
@@ -2654,7 +2903,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("바꾸기 작업 실행")
+                .setText("바꾸기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2666,10 +2915,10 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("덮기 작업 실행")
+                .setText("덮기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    setEditData(EditTypes.terrain.COVER);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
@@ -2678,10 +2927,10 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("벽 작업 실행")
+                .setText("벽")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    setEditData(EditTypes.terrain.WALL);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
@@ -2690,7 +2939,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("복사 작업 실행")
+                .setText("복사")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2702,7 +2951,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("붙어넣기 작업 실행")
+                .setText("붙어넣기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2714,7 +2963,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("원 작업 실행")
+                .setText("원")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2726,7 +2975,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("구 작업 실행")
+                .setText("구")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2738,7 +2987,7 @@
                 .get());
 
             main_layout.addView(new Item()
-                .setText("원기둥 작업 실행")
+                .setText("원기둥")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
 
@@ -2838,6 +3087,9 @@
         if (__window == null) {
             makeEditButton();
         }
+        if(taskWindow == null) {
+            showTaskState();
+        }
     };
 
 
@@ -2851,6 +3103,9 @@
             if (__window != null) {
                 __window.dismiss();
                 __window = null;
+            }
+            if(taskWindow != null) {
+                taskWindow.dismiss();
             }
         });
         editor.saveFromDirectory();
@@ -2879,7 +3134,7 @@
 
 
     bl.entityAddedHook = function(ent) {
-
+        
     };
 
 
