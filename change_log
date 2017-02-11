@@ -1,6 +1,5 @@
 #1.0
  - First version
  - Add terrain edit functions { fill, change, wall, cover, copy, paste, circle, sphere, cylinder, rotate, flip }
- - Add server edit functions { give, heal, teleport, hunger, exp, potion effect, ban }
  - Auto updating
  - Item and block searcher
