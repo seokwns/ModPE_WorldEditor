@@ -959,7 +959,7 @@
     CheckBox.prototype.setParams = function(width, height) {
         this._WIDTH = width;
         this._HEIGHT = height;
-        this._viewLayout.setLayoutParams(new Params_(this.WIDTH, this.HEIGHT));
+        this._viewLayout.setLayoutParams(new Params_(width, height));
         return this;
     };
 
@@ -978,6 +978,9 @@
 
     CheckBox.prototype.get = function() {
         var thiz = this;
+        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * dp, this._HEIGHT));
+        this._viewLayout.addView(this._textView);
+
         this._view.setBackgroundDrawable(Drawable.CHECKBOX_OFF(this._color));
         this._view.setLayoutParams(new Params_(30 * dp, 30 * dp));
         this._view.setOnCheckedChangeListener(new OnCheckedChangeListener_({
@@ -994,9 +997,6 @@
             }
         }));
         this._viewLayout.addView(this._view);
-
-        this._textView.setLayoutParams(new Params_(this._WIDTH - 35 * dp, this._HEIGHT));
-        this._viewLayout.addView(this._textView);
 
         return this._viewLayout;
     };
@@ -1782,7 +1782,7 @@
             this.y = x.getY();
             this.z = x.getZ();
             this.id = (y == null ? bl.Level.getTile(x.getX(), x.getY(), x.getZ()) : y);
-            this.data = (z == null ? bl.Level.getData(x.getX(), x.getY(), z.getZ()) : z);
+            this.data = (z == null ? bl.Level.getData(x.getX(), x.getY(), x.getZ()) : z);
         }
         if (typeof x == "number") {
             this.x = x;
@@ -1854,7 +1854,7 @@
 
     Block.prototype.getVector = function() {
         return new Vector3(this.x, this.y, this.z);
-    }
+    };
 
     Block.prototype.rotate = function() { //지형 회전시 계단의 블록 데이터를 회전시켜줍니다
         var _degree, datas = [1, 3, 0, 2],
@@ -2034,8 +2034,10 @@
         CIRCLE: 1,
         SPHERE: 2,
         CYLINDER: 3,
-        ROTATE: 4,
-        FLIP: 5
+        COPY: 4,
+        PASTE: 5,
+        ROTATE: 6,
+        FLIP: 7
     };
     Object.freeze(RenderTypes);
 
@@ -2055,9 +2057,11 @@
         this._copiedBlock = [];
         this._savedBlock = [];
         this._editedBlock = [];
+        this._copyBlock = [];
         this._taskCount = 0;
         this._editCount = 0;
         this.__editCount = 0;
+        this._undoCount = 0;
         this._editable = false;
         this._paste = false;
     }
@@ -2090,7 +2094,9 @@
             return;
         }
 
-        this._savedBlock[this._taskCount] = [];
+        if(type != RenderTypes.UNDO) {
+            this._savedBlock[this._taskCount] = [];
+        }
         //스캔한 블럭을 담을 배열 생성
         switch (type) {
             case RenderTypes.CUBE:
@@ -2139,7 +2145,9 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
-                var task_length = Math.pow(((2 * radius) - 1), 2);
+                var radius = data[0],
+                            hollow = data[1],
+                            task_length = Math.pow(((2 * radius) - 1), 2);
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
                     progressBar.setMax(task_length);
@@ -2147,14 +2155,11 @@
                 });
                 new Thread_({
                     run() {
-                        var radius = data[0],
-                            hollow = data[1];
-
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
                                 thiz.__editCount++;
                                 if ((Math.pow(dx, 2) + Math.pow(dz, 2)) < (Math.pow(radius - 0.5, 2))) {
-                                    if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius + 1.5), 2)))) { //속이 빈 원 옵션 체크
+                                    if (hollow && !(Math.pow(dx, 2) + Math.pow(dz, 2) >= (Math.pow((radius - 1.5), 2)))) { //속이 빈 원 옵션 체크
                                         continue;
                                     }
                                     thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY(), p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
@@ -2185,7 +2190,9 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
-                var task_length = Math.pow(((2 * radius) - 1), 3);
+                var radius = data[0],
+                    hollow = data[1],
+                    task_length = Math.pow(((2 * radius) - 1), 3);
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
                     progressBar.setMax(task_length);
@@ -2193,9 +2200,6 @@
                 });
                 new Thread_({
                     run() {
-                        var radius = data[0],
-                            hollow = data[1];
-
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dy = -radius + 1; dy < radius; dy++) { //y 변화량
                                 for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
@@ -2208,7 +2212,7 @@
                                         thiz._savedBlock[thiz._taskCount].push(new Block(p1.getX() + dx, p1.getY() + dy, p1.getZ() + dz)); //스캔한 블럭을 스캔한 지형 배열에 추가
                                     }
                                     uiThread(function() {
-                                        progressBar.setMax(thiz.__editCount);
+                                        progressBar.setProgress(thiz.__editCount);
                                     });
                                     Thread_.sleep(Data.speed);
                                 }
@@ -2233,7 +2237,11 @@
                     toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
                     return;
                 }
-                var task_length = ((Math.pow(((2 * radius) - 1), 2)) * height)
+                var radius = data[0],
+                            hollow = data[1],
+                            height = data[2],
+                            task_length = ((Math.pow(((2 * radius) - 1), 2)) * height);
+                            
                 toast("지형을 탐색합니다. 잠시만 기다려주세요....");
                 uiThread(function() {
                     taskText.setText("지형 스캔중...");
@@ -2241,10 +2249,6 @@
                 });
                 new Thread_({
                     run() {
-                        var radius = data[0],
-                            hollow = data[1],
-                            height = data[2];
-
                         for (var dx = -radius + 1; dx < radius; dx++) { //x 변화량
                             for (var dz = -radius + 1; dz < radius; dz++) { //z 변화량
                                 for (var dh = 0; dh < height; dh++) {
@@ -2276,13 +2280,54 @@
                     }
                 }).start();
                 break;
+                
+            case RenderTypes.COPY:
+                if (pointer == null || _pointer == null) {
+                    toast("지형 수정 구간이 정해지지 않았습니다.\n구간을 지정해주세요.");
+                    return;
+                }
+                var editVector = getEditVector(p1, p2),
+                    task_length = (editVector.dx * editVector.dy * editVector.dz);
+                    
+                uiThread(function() {
+                    taskText.setText("지형 복사중...");
+                    progressBar.setMax(task_length);
+                });
+                new Thread_({
+                    run() {
+                        for (var dx = 0; dx < editVector.dx; dx++) { //x 변화량
+                            for (var dy = 0; dy < editVector.dy; dy++) { //y 변화량
+                                for (var dz = 0; dz < editVector.dz; dz++) { //z 변화량
+                                    thiz._copyBlock.push(new Block(dx, dy, dz, bl.Level.getTile(editVector.start.getX() + dx, editVector.start.getY() + dy, editVector.start.getZ() + dz), bl.Level.getData(editVector.start.getX() + dx, editVector.start.getY() + dy, editVector.start.getZ() + dz))); //스캔한 블럭을 스캔한 지형 배열에 추가
+                                    thiz._editCount++; //스캔한 블록의 수
+                                    Thread_.sleep(Data.speed);
+                                    uiThread(function() {
+                                        progressBar.setProgress(thiz._editCount);
+                                    });
+                                }
+                            }
+                        }
+
+                        if (thiz._editCount == task_length) {
+                            toast(thiz._editCount + "개의 블록들이 복사되었습니다.");
+                            uiThread(function() {
+                                progressBar.setProgress(0);
+                                taskText.setText("작업 중이 아닙니다.");
+                            });
+                            thiz._editCount = 0;
+                        }
+                    }
+                }).start();
+                break;
         }
     };
 
     Editor.prototype.request = function(type, task, data) {
         if (type === EditTypes.terrain.TYPE) { //지형 작업 요청
             const thiz = this;
-            this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
+            if(task != EditTypes.terrain.UNDO || task != EditTypes.terrain.REDO) {
+                this._editedBlock[this._taskCount] = []; //수정한 지형을 담을 배열 생성
+            }
             switch (task) {
                 case EditTypes.terrain.FILL: //data = [채울 블록 아이디, 채울 블록 데이터]
                     new Thread_({
@@ -2305,6 +2350,7 @@
                                     });
                                     toast(thiz._editCount + "개의 블록으로 채웠습니다.");
                                     thiz._taskCount++; //작업한 수 증가
+                                    thiz._undoCount = thiz._taskCount;
                                     thiz._editCount = 0; //작업한 블록 수 초기화
                                     thiz._editable = false; //작업 종료
                                     uiThread(function() {
@@ -2339,6 +2385,7 @@
                                             content: "id: " + data[0] + ", data: " + data[1] + "을 id: " + data[2] + ", data: " + data[3] + "으로 바꾸기"
                                         });
                                         thiz._taskCount++; //작업한 수 증가
+                                        thiz._undoCount = thiz._taskCount;
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
                                         uiThread(function() {
@@ -2351,18 +2398,6 @@
                             }
                         }
                     }).start();
-                    break;
-
-                case EditTypes.terrain.COPY:
-                    thiz._copiedBlock = thiz._savedBlock[thiz._taskCount]; //복사한 지형 = 스캔한 지형
-
-                    Data.task.push({
-                        type: EditTypes.terrain.COPY,
-                        count: thiz._editCount,
-                        content: thiz._editCount + "개의 블록을 복사함"
-                    });
-                    thiz.paste = true;
-                    thiz._editCount = 0;
                     break;
 
                 case EditTypes.terrain.COVER: //data = [덮을 블록 아이디, 덮을 블록 데이터]
@@ -2386,6 +2421,7 @@
                                             content: "id: " + data[0] + ", data: " + data[1] + "으로 덮기"
                                         });
                                         thiz._taskCount++; //작업한 수 증가
+                                        thiz._undoCount = thiz._taskCount;
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
                                         uiThread(function() {
@@ -2429,6 +2465,7 @@
                                             content: "id: " + data[0] + ", data: " + data[1] + "로 벽 만들기"
                                         });
                                         thiz._taskCount++; //작업한 수 증가
+                                        thiz._undoCount = thiz._taskCount;
                                         thiz._editCount = 0; //작업한 블록 수 초기화
                                         thiz._editable = false; //작업 종료
                                         uiThread(function() {
@@ -2444,7 +2481,7 @@
                     }).start();
                     break;
 
-                case EdiTypes.terrain.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
+                case EditTypes.terrain.CIRCLE: //data = [반지름, 속 비우기 여부, 블록 아이디, 블록 데이터]
                     new Thread_({
                         run() {
                             for (var i = 0, len = thiz._savedBlock[thiz._taskCount].length; i < len; i++) {
@@ -2466,7 +2503,9 @@
                                         content: "id: " + data[2] + ", data: " + data[3] + "로 원 만들기"
                                     });
                                     thiz._taskCount++; //작업한 수 증가
+                                    thiz._undoCount = thiz._taskCount;
                                     thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz.__editCount = 0;
                                     thiz._editable = false; //작업 종료
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
@@ -2501,7 +2540,9 @@
                                         content: "id: " + data[2] + ", data: " + data[3] + "로 구 만들기"
                                     });
                                     thiz._taskCount++; //작업한 수 증가
+                                    thiz._undoCount = thiz._taskCount;
                                     thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz.__editCount = 0;
                                     thiz._editable = false; //작업 종료
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
@@ -2537,7 +2578,9 @@
                                         content: "id: " + data[3] + ", data: " + data[4] + "로 원기둥 만들기"
                                     });
                                     thiz._taskCount++; //작업한 수 증가
+                                    thiz._undoCount = thiz._taskCount;
                                     thiz._editCount = 0; //작업한 블록 수 초기화
+                                    thiz.__editCount = 0;
                                     thiz._editable = false; //작업 종료
                                     uiThread(function() {
                                         taskText.setText("작업 중이 아닙니다.");
@@ -2557,9 +2600,80 @@
                     break;
 
                 case EditTypes.terrain.UNDO:
+                    if(thiz._undoCount == 0) {
+                        toast("되돌릴 지형이 없습니다.");
+                        return;
+                    }
+                    
+                    thiz._undoCount--;
+                    uiThread(function() { 
+                        taskText.setText("지형 되돌리는중...");
+                        progressBar.setMax(thiz._savedBlock[thiz._undoCount].length);
+                    });
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._savedBlock[thiz._undoCount].length; i < len; i++) {
+                                thiz._savedBlock[thiz._undoCount][i].set();
+                                thiz._editCount++;
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
+                                Thread_.sleep(Data.speed);
+                                
+                                if(i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.UNDO,
+                                        count: thiz._editCount,
+                                        content: "되돌리기"
+                                    });
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.setMax(0);
+                                    });
+                                }
+                            }
+                        }
+                    }).start();
                     break;
 
                 case EditTypes.terrain.REDO:
+                    if(thiz._undoCount == thiz._taskCount) {
+                        toast("되돌릴 지형이 없습니다.");
+                        return;
+                    }
+                    uiThread(function() { 
+                        taskText.setText("지형 되돌리는중...");
+                        progressBar.setMax(thiz._editedBlock[thiz._undoCount].length);
+                    });
+                    new Thread_({
+                        run() {
+                            for (var i = 0, len = thiz._editedBlock[thiz._undoCount].length; i < len; i++) {
+                                thiz._editedBlock[thiz._undoCount][i].set();
+                                thiz._editCount++;
+                                uiThread(function() {
+                                    progressBar.setProgress(i + 1);
+                                });
+                                Thread_.sleep(Data.speed);
+                                
+                                if(i == len - 1) {
+                                    Data.task.push({ //작업 리스트에 추가
+                                        type: EditTypes.terrain.REDO,
+                                        count: thiz._editCount,
+                                        content: "되돌리기"
+                                    });
+                                    thiz._undoCount++;
+                                    thiz._editCount = 0; //작업한 블록 수 초기화
+                                    uiThread(function() {
+                                        taskText.setText("작업 중이 아닙니다.");
+                                        progressBar.setProgress(0);
+                                        progressBar.setMax(0);
+                                    });
+                                }
+                            }
+                        }
+                    }).start();
                     break;
             }
         }
@@ -2577,8 +2691,6 @@
         file.create();
         file.write(JSON.stringify(Data));
     };
-
-
 
     function Command() {
 
@@ -2620,7 +2732,7 @@
             taskLayout.setGravity(Gravity_.CENTER);
             taskWindow.setBackgroundDrawable(new ColorDrawable_(Color_.parseColor("#80000000")));
             taskWindow.setWidth(150 * dp);
-            taskWindow.setHeight(45 * dp);
+            taskWindow.setHeight(38 * dp);
             taskWindow.setOnDismissListener(new OnDismissListener_() {
                 onDismiss: function() {
                     taskLayout.removeAllViews();
@@ -2639,7 +2751,7 @@
             taskText.setTextColor(Color_.YELLOW);
             taskText.setGravity(Gravity_.CENTER);
             taskText.setTextSize(15);
-            taskLayout.addView(taskText, 150 * dp, 40 * dp);
+            taskLayout.addView(taskText, 150 * dp, 30 * dp);
             taskLayout.addView(progressBar);
             
             taskWindow.setContentView(taskLayout);
@@ -2733,13 +2845,11 @@
                     break;
                     
                 case EditTypes.terrain.CIRCLE:
-                case EditTypes.terrain.CIRCLE_HOLLOW:
                 case EditTypes.terrain.SPHERE:
-                case EditTypes.terrain.SPHERE_HOLLOW:
                     var hollow = false;
                     window.setTitle("Terrain Edit - " + EditTypes.dump(EditTypes.terrain)[task + 1]);
                     var editText = [], text = [["블럭 아이디 : ", "블럭 아이디를 입력하세요."], ["블럭 데이터 : ", "블럭 데이터(데미지)를 입력하세요."], ["반지름 : ", "반지름을 입력하세요."]];
-                    for(var i = 0; i < 2; i++) {
+                    for(var i = 0; i < 3; i++) {
                         var editLayout = new LinearLayout_(CONTEXT);
                         editLayout.setOrientation(0);
                         editLayout.setGravity(Gravity_.LEFT|Gravity_.CENTER);
@@ -2762,14 +2872,14 @@
                     }
                     
                     var checkBox = new CheckBox();
-                    checkBox.setText("속 비우기");
+                    checkBox.setText("속 비우기 여부");
                     checkBox.setColor(Color_.BLACK);
-                    checkBox.setParams(300 * dp, 45 * dp);
+                    checkBox.setParams(250 * dp, 45 * dp);
                     checkBox.setChecked(false);
                     checkBox.setOnCheckedChangeListener(function(box, checked) {
                         hollow = checked;
                     });
-                    main.addView(checkBox);
+                    main.addView(checkBox.get());
                     
                     var linear = new LinearLayout_(CONTEXT);
                     linear.setOrientation(0);
@@ -2793,7 +2903,12 @@
                         .setWH(100 * dp, 35 * dp)
                         .setEffectColor(Color_.argb(140, 140, 140, 140))
                         .setEvent(function(v) {
-                            editor.render(pointer, _pointer, RenderTypes.CIRCLE, task, [parseInt(editText[2].getText().toString()), hollow, parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                            if(task == EditTypes.terrain.CIRCLE) {
+                                editor.render(pointer, _pointer, RenderTypes.CIRCLE, task, [parseInt(editText[2].getText().toString()), hollow, parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                            }
+                            if(task == EditTypes.terrain.SPHERE) {
+                                editor.render(pointer, _pointer, RenderTypes.SPHERE, task, [parseInt(editText[2].getText().toString()), hollow, parseInt(editText[0].getText().toString()), parseInt(editText[1].getText().toString())]);
+                            }
                         })
                         .get());
                     main.addView(new Space().setWH(1, 20* dp).get());
@@ -2813,75 +2928,30 @@
 
     function EditWindow() {
         uiThread(function() {
+            edit_window = new PopupWindow();
+            edit_window.setTitle("Terrain Edit Window");
+            edit_window.setOnDismissListener(function() {
+                edit_window = null;
+            });
+            
             var edit_side_layout = new LinearLayout_(CONTEXT);
             edit_side_layout.setOrientation(1);
             edit_side_layout.setGravity(Gravity_.CENTER);
-            var server_edit = new Button()
-                .setText("")
-                .setWH(45 * dp, 45 * dp)
-                .setDuration(0)
-                .setEffectColor(Color_.argb(0, 0, 0, 0))
-                .setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]))
-                .setEvent(function(v) {
-                    //edit_window.removeAllViews();
-                    server_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
-                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                });
-            edit_side_layout.addView(server_edit.get());
-
-            var cube_terrain_edit = new Button()
-                .setText("")
-                .setWH(45 * dp, 45 * dp)
-                .setDuration(0)
-                .setEffectColor(Color_.argb(0, 0, 0, 0))
-                .setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-                .setEvent(function(v) {
-                    cube_terrain_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.CODEPEN(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
-                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                });
-            edit_side_layout.addView(cube_terrain_edit.get());
-
-            var figure_edit = new Button()
-                .setText("")
-                .setWH(45 * dp, 45 * dp)
-                .setEffectColor(Color_.argb(0, 0, 0, 0))
-                .setDuration(0)
-                .setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-                .setEvent(function(v) {
-                    figure_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.WEBEX(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
-                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                });
-            edit_side_layout.addView(figure_edit.get());
-
-            var setting = new Button()
-                .setText("")
-                .setWH(45 * dp, 45 * dp)
-                .setDuration(0)
-                .setEffectColor(Color_.argb(0, 0, 0, 0))
-                .setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
-                .setEvent(function(v) {
-                    setting.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.COG(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
-                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
-                });
-            edit_side_layout.addView(setting.get());
-
-
+            
             var main_layout = new LinearLayout_(CONTEXT);
             main_layout.setOrientation(1);
             main_layout.setPadding(0, 0, 0, 3 * dp);
-            main_layout.addView(new Item()
+            
+            var cube_edit_layout = new LinearLayout_(CONTEXT);
+            cube_edit_layout.setOrientation(1);
+            cube_edit_layout.addView(new Item()
                 .setText("undo")
                 .setWH(300 * dp, 45 * dp)
-                .setEvent(function() {
-
+                .setEvent(function() { try {
+                    editor.request(EditTypes.terrain.TYPE, EditTypes.terrain.UNDO);
+                    }catch(err) {
+                        error(err);
+                    }
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("undo")
@@ -2889,11 +2959,12 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("redo")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    editor._editable = true;
+                    editor.request(EditTypes.terrain.TYPE, EditTypes.terrain.REDO);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("redo")
@@ -2901,7 +2972,7 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("채우기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
@@ -2913,7 +2984,7 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("바꾸기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
@@ -2925,7 +2996,7 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("덮기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
@@ -2937,7 +3008,7 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("벽")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
@@ -2949,11 +3020,11 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("복사")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    editor.render(pointer, _pointer, RenderTypes.COPY);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("copy")
@@ -2961,23 +3032,26 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            cube_edit_layout.addView(new Item()
                 .setText("붙어넣기")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    editor._paste = true;
+                    toast("붙여넣기 모드가 활성되었습니다.");
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("paste")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
-
-            main_layout.addView(new Item()
+                
+            var figure_edit_layout = new LinearLayout_(CONTEXT);
+            figure_edit_layout.setOrientation(1);
+            figure_edit_layout.addView(new Item()
                 .setText("원")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    setEditData(EditTypes.terrain.CIRCLE);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
@@ -2985,11 +3059,11 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            figure_edit_layout.addView(new Item()
                 .setText("구")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    setEditData(EditTypes.terrain.SPHERE);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
@@ -2997,26 +3071,86 @@
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
 
-            main_layout.addView(new Item()
+            figure_edit_layout.addView(new Item()
                 .setText("원기둥")
                 .setWH(300 * dp, 45 * dp)
                 .setEvent(function() {
-
+                    setEditData(EditTypes.terrain.CYLINDER);
                 })
                 .setButtonWH(70 * dp, 35 * dp)
                 .setButtonText("edit")
                 .setColor(Data.buttonColor)
                 .setEffectColor(Data.buttonEffectColor)
                 .get());
+            
+            var cube_terrain_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.CODEPEN(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]))
+                .setEvent(function(v) {
+                    main_layout.removeAllViews();
+                    cube_terrain_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.CODEPEN(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    main_layout.addView(cube_edit_layout);
+                });
+            edit_side_layout.addView(cube_terrain_edit.get());
+
+            var figure_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setDuration(0)
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    main_layout.removeAllViews();
+                    figure_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.WEBEX(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    main_layout.addView(figure_edit_layout);
+                });
+            edit_side_layout.addView(figure_edit.get());
+            
+            var server_edit = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    main_layout.removeAllViews();
+                    server_edit.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.EDIT(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    setting.setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(server_edit.get());
+
+            var setting = new Button()
+                .setText("")
+                .setWH(45 * dp, 45 * dp)
+                .setDuration(0)
+                .setEffectColor(Color_.argb(0, 0, 0, 0))
+                .setBackgroundDrawable(Drawable.setPadding(Drawable.COG(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp))
+                .setEvent(function(v) {
+                    main_layout.removeAllViews();
+                    setting.setBackgroundDrawable(new LayerDrawable_([new ColorDrawable_(Color_.WHITE), Drawable.setPadding(Drawable.COG(Color_.BLACK), 10 * dp, 10 * dp, 10 * dp, 10 * dp)]));
+                    cube_terrain_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.CODEPEN(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    figure_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.WEBEX(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                    server_edit.setBackgroundDrawable(Drawable.setPadding(Drawable.EDIT(Color_.WHITE), 10 * dp, 10 * dp, 10 * dp, 10 * dp));
+                });
+            edit_side_layout.addView(setting.get());
+
+
+            main_layout.addView(cube_edit_layout);
             var scroll = new ScrollView_(CONTEXT);
             scroll.addView(main_layout);
 
 
-            edit_window = new PopupWindow();
-            edit_window.setTitle("Terrain Edit Window");
-            edit_window.setOnDismissListener(function() {
-                edit_window = null;
-            });
             edit_window.setMenuLayout(edit_side_layout);
             edit_window.setContentView(scroll);
             edit_window.setTextColor(Color_.BLACK);
@@ -3126,9 +3260,51 @@
 
 
     bl.useItem = function(x, y, z, itemId, blockId, side, itemData, blockData) {
-        if (itemId == 500) {
+        if (itemId == 500 && !editor._paste) {
             pointer = new Pointer(x, y, z);
             toast("시작 지점이 " + pointer.toString() + "으로 설정되었습니다.");
+        }
+        
+        if(itemId == 500 && editor._paste) {
+            uiThread(function() {
+                progressBar.setMax(editor._copyBlock.length);
+                taskText.setText("지형 붙여넣는중...");
+            });
+            editor._savedBlock[editor._taskCount] = [];
+            new Thread_({
+                run() {
+                    for(var i = 0, len = editor._copyBlock.length; i < len; i++) {
+                        var block = editor._copyBlock[i];
+                            
+                        block.update(block.getX() + x, block.getY() + y, block.getZ() + z, null, null);
+                        var _block = new Block(block.getVector());
+                        block.set();
+                        
+                        editor._savedBlock[editor._taskCount].push(_block);
+                        editor._editCount++;
+                        uiThread(function() {
+                            progressBar.setProgress(editor._editCount);
+                        });
+                        
+                        if(i == len - 1) {
+                            toast(editor._editCount + "개의 블럭을 붙여넣었습니다.");
+                            editor._taskCount++;
+                            editor._paste = false;
+                            Data.task.push({ //작업 리스트에 추가
+                                type: EditTypes.terrain.PASTE,
+                                count: editor._editCount,
+                                content: "붙여넣기"
+                            });
+                            editor._editCount = 0; //작업한 블록 수 초기화
+                            uiThread(function() {
+                                taskText.setText("작업 중이 아닙니다.");
+                                progressBar.setProgress(0);
+                                progressBar.setMax(0);
+                            });
+                        }
+                    }
+                }
+            }).start();
         }
     };
 
